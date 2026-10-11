@@ -1,4 +1,5 @@
 import { Vector3, type MeshStandardMaterial, type WebGLProgramParametersWithUniforms } from 'three';
+import { EARTH_RADIUS_KM } from '../astro/constants';
 import type { EclipseGeometry } from '../sim/eclipse';
 import { ECLIPSE_GLSL } from '../sim/eclipseGlsl';
 
@@ -49,13 +50,38 @@ vec3 moonSimEclipseLightForNormal(vec3 n) {
   vec3 p = moonSimMoonCenterKm + MOON_SIM_MOON_RADIUS_KM * normalize(n);
   return moonSimLunarEclipseLight(p, moonSimSunKm) * moonSimEclipseGain;
 }
+// Earth (at the origin) under the Moon's shadow: the visible part of the Sun's disc at the true
+// surface point under world normal n — the umbra (or annular antumbra) and penumbra of a solar eclipse.
+vec3 moonSimSolarEclipseLightForNormal(vec3 n) {
+  vec3 p = ${String(EARTH_RADIUS_KM)} * normalize(n);
+  return vec3(moonSimVisibleSolarFraction(
+    p, moonSimSunKm, MOON_SIM_SUN_RADIUS_KM, moonSimMoonCenterKm, MOON_SIM_MOON_RADIUS_KM
+  )) * moonSimEclipseGain;
+}
 `;
 
 /**
- * Makes a MeshStandardMaterial on a Moon sphere eclipse-aware: its direct (sun) lighting is
- * multiplied by the light that actually reaches each surface point. Ambient light is untouched.
+ * Which body a material shades: the Moon (in Earth's shadow: lunar eclipses) or Earth (in the
+ * Moon's shadow: solar eclipses).
  */
-export function makeEclipseAware(material: MeshStandardMaterial, uniforms: EclipseUniforms): void {
+export type EclipseBody = 'moon' | 'earth';
+
+const LIGHT_FOR_NORMAL: Record<EclipseBody, string> = {
+  moon: 'moonSimEclipseLightForNormal',
+  earth: 'moonSimSolarEclipseLightForNormal',
+};
+
+/**
+ * Makes a MeshStandardMaterial on a Moon or Earth sphere eclipse-aware: its direct (sun) lighting
+ * is multiplied by the light that actually reaches each surface point. Ambient light is untouched.
+ * The surface point comes from the normal on the true-size body, so visual aids (enlarged bodies,
+ * a Moon drawn closer) never move the shadow — it stays where the real one falls.
+ */
+export function makeEclipseAware(
+  material: MeshStandardMaterial,
+  uniforms: EclipseUniforms,
+  body: EclipseBody = 'moon',
+): void {
   material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
@@ -73,11 +99,12 @@ export function makeEclipseAware(material: MeshStandardMaterial, uniforms: Eclip
       .replace(
         '#include <lights_fragment_end>',
         `#include <lights_fragment_end>
-        vec3 moonSimEclipse = moonSimEclipseLightForNormal(vMoonSimNormalWorld);
+        vec3 moonSimEclipse = ${LIGHT_FOR_NORMAL[body]}(vMoonSimNormalWorld);
         reflectedLight.directDiffuse *= moonSimEclipse;
         reflectedLight.directSpecular *= moonSimEclipse;`,
       );
   };
-  material.customProgramCacheKey = () => 'moon-sim-eclipse';
+  material.customProgramCacheKey = () =>
+    body === 'moon' ? 'moon-sim-eclipse' : `moon-sim-eclipse-${body}`;
   material.needsUpdate = true;
 }

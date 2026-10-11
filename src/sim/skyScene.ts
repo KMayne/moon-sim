@@ -13,6 +13,7 @@ import { length, mul, mulVec, normalize, transpose, type Mat3, type Vec3 } from 
 import { vecToThree, Z_UP_TO_THREE } from './axes';
 import { lunarEclipseIllumination, type LunarEclipseIllumination } from './eclipse';
 import { lunarToSolarRatio, moonlightOnGround } from './moonlight';
+import { observerSolarFraction } from './solarEclipse';
 
 /**
  * The sky as seen by an observer. World axes (three, Y-up) are the observer's local
@@ -40,6 +41,11 @@ export interface SkyScene {
   readonly moonlightOnGround: number;
   /** How eclipsed the Moon is (1 = not at all); already folded into `lunarToSolar`. */
   readonly eclipseIllumination: LunarEclipseIllumination;
+  /**
+   * Fraction of the Sun's disc the observer can see past the Moon (1 = no solar eclipse,
+   * 0 = totality). True geometry, unaffected by visual aids.
+   */
+  readonly solarVisibleFraction: number;
   readonly moon: AltAz;
   /** Rendered angular radius of the Moon: true topocentric value × the body-size visual aid. */
   readonly moonAngularRadius: number;
@@ -84,6 +90,7 @@ export function toSkyScene(
     lunarToSolar,
     moonlightOnGround: moonlightOnGround(lunarToSolar, moon.altitude),
     eclipseIllumination,
+    solarVisibleFraction: observerSolarFraction(state, observer),
     moon,
     moonAngularRadius: Math.asin(MOON_RADIUS_KM / length(moonTopo)) * bodySize,
     sunAngularRadius: Math.asin(SUN_RADIUS_KM / length(sunTopo)) * bodySize,

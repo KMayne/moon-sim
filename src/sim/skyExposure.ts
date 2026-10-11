@@ -55,14 +55,30 @@ export function moonExposureBoost(moonlight: number): number {
 }
 
 /**
+ * How much of a solar eclipse's dimming the eye compensates (as MOON_ADAPTATION does for
+ * moonlight). Even an 80–90% partial eclipse is barely noticed outdoors; totality still drops to
+ * twilight with bright stars and planets out.
+ */
+const ECLIPSE_ADAPTATION = 0.75;
+
+/** Extra log10 exposure while the Sun's light is scaled by `sunlight` (eclipse; 1 = none). */
+export function eclipseExposureBoost(sunlight: number): number {
+  if (!(sunlight > 0) || sunlight >= 1) return 0;
+  return -ECLIPSE_ADAPTATION * Math.log10(sunlight);
+}
+
+/**
  * @param sunAltitudeDeg Sun's altitude for the observer.
  * @param moonlight Direct moonlight on the ground, relative to an overhead Sun outside the
  *   atmosphere (sim/moonlight.ts `moonlightOnGround`). 0 = moonless.
+ * @param sunlight Scale on the Sun's light from a solar eclipse (sim/solarEclipse.ts
+ *   `eclipseSunlightScale`; 1 = no eclipse). Adaptation never exceeds the night level.
  */
-export function skyExposure(sunAltitudeDeg: number, moonlight = 0): number {
+export function skyExposure(sunAltitudeDeg: number, moonlight = 0, sunlight = 1): number {
   const night = nightWeight(sunAltitudeDeg);
   const sunLog = DAY_LOG_EXPOSURE + night * (NIGHT_LOG_EXPOSURE - DAY_LOG_EXPOSURE);
-  return 10 ** (sunLog + night * moonExposureBoost(moonlight));
+  const eclipseLog = Math.min(eclipseExposureBoost(sunlight), NIGHT_LOG_EXPOSURE - sunLog);
+  return 10 ** (sunLog + eclipseLog + night * moonExposureBoost(moonlight));
 }
 
 /**

@@ -58,3 +58,19 @@ describe('starExposure', () => {
     expect(starExposure(NIGHT_EXPOSURE * 50)).toBe(NIGHT_EXPOSURE);
   });
 });
+
+describe('eye adaptation during a solar eclipse', () => {
+  it('is unchanged without an eclipse', () => {
+    expect(skyExposure(30, 0, 1)).toBe(skyExposure(30));
+  });
+
+  it('brightens a little for a deep partial and to near night level at totality', () => {
+    const day = skyExposure(30);
+    const partial = skyExposure(30, 0, 0.17);
+    const totality = skyExposure(30, 0, 3e-4);
+    expect(partial / day).toBeGreaterThan(2);
+    expect(partial / day).toBeLessThan(6);
+    expect(totality).toBeGreaterThan(day * 100);
+    expect(totality).toBeLessThanOrEqual(NIGHT_EXPOSURE + 1e-6);
+  });
+});

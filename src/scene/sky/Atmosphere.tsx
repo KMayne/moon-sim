@@ -6,6 +6,7 @@ import { FileLoader, type Points } from 'three';
 import { NIGHT_FLOOR_MAX, nightFloorWeight } from '../../sim/groundLight';
 import { moonSkyLightScale, sunSkyLightScale } from '../../sim/moonlight';
 import { skyExposure, starExposure } from '../../sim/skyExposure';
+import { coronaWeight, eclipseSunlightScale, totalityResidual } from '../../sim/solarEclipse';
 import { applyRotation } from '../applyTransform';
 import { PRIORITY, useFrameRef } from '../frame';
 import { DisplaySkyMaterial, DisplayStarsMaterial } from './atmosphereMaterials';
@@ -62,7 +63,15 @@ export function Atmosphere() {
       eqjToSky,
     } = frame.sky;
     const sunAltitude = frame.sky.sun.altitude;
-    const exposure = skyExposure(sunAltitude, frame.sky.moonlightOnGround);
+    // Solar eclipse: direct sunlit sky and ground follow how much of the Sun is visible; light
+    // scattered in from outside the shadow is a separate residual; the eye adapts to both.
+    const solar = frame.sky.solarVisibleFraction;
+    const residual = totalityResidual(solar) * sunSkyLightScale(sunAltitude);
+    const exposure = skyExposure(
+      sunAltitude,
+      frame.sky.moonlightOnGround,
+      eclipseSunlightScale(solar),
+    );
     const floor = nightFloorWeight(sunAltitude);
     sky.setSkyFloor(NIGHT_FLOOR_MAX.skyHorizon * floor, NIGHT_FLOOR_MAX.skyZenith * floor);
     const moonScale = moonSkyLightScale(
@@ -70,12 +79,18 @@ export function Atmosphere() {
       frame.sky.moon.altitude,
       sunAltitude,
     );
-    const sunScale = sunSkyLightScale(sunAltitude);
+    const sunScale = sunSkyLightScale(sunAltitude) * solar;
     sky.setMoonlight(moon.x, moon.y, moon.z, moonScale);
     sky.setSunScale(sunScale);
     sky.setExposure(exposure);
     sky.setSunDiscRadius(frame.sky.sunAngularRadius);
-    starsMaterial.setLighting(moon, moonScale, sunScale);
+    sky.setSolarEclipse(
+      frame.sky.moonAngularRadius,
+      coronaWeight(solar),
+      residual,
+      frame.orbit.visualScale.bodySize,
+    );
+    starsMaterial.setLighting(moon, moonScale, sunScale, residual);
     starsMaterial.setExposure(exposure, starExposure(exposure));
     for (const material of [sky, starsMaterial]) {
       material.sunDirection.set(sun.x, sun.y, sun.z);

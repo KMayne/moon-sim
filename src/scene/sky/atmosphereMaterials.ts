@@ -10,6 +10,7 @@ import {
 } from 'three';
 import { GROUND_ALBEDO } from '../../sim/groundLight';
 import { MESOPIC_GLSL } from '../../sim/mesopic';
+import { CORONA_FALLOFF, CORONA_K } from '../../sim/solarEclipse';
 import { STAR_INTENSITY } from '../../sim/skyExposure';
 
 /**
@@ -136,6 +137,71 @@ if (moonSimMoonScale > 0.0) {
 `;
 
 /**
+ * Sky and ground light during a solar eclipse that doesn't come from the hidden Sun directly:
+ * light scattered in from the sunlit atmosphere outside the Moon's shadow (sim/solarEclipse.ts
+ * TOTALITY_SKY_RESIDUAL). Approximated from the uneclipsed daylight at the observer: the sky's mean
+ * radiance (sky irradiance / π) times the residual, rising and warming toward the horizon; the
+ * ground gets albedo/π × the residual irradiance. Zero (and skipped) outside eclipses.
+ */
+const ECLIPSE_RESIDUAL_GLSL = /* glsl */ `
+if (moonSimEclipseResidual > 0.0) {
+  vec3 moonSimUp = normalize(cameraPosition);
+  vec3 moonSimResSky;
+  vec3 moonSimResSun = GetSunAndSkyIrradiance(cameraPosition, moonSimUp, sunDirection, moonSimResSky);
+  float moonSimResElevation = dot(rayDirection, moonSimUp);
+  if (moonSimResElevation >= 0.0) {
+    float moonSimRim = pow(1.0 - moonSimResElevation, 6.0);
+    vec3 moonSimRimTint = mix(vec3(1.0), vec3(2.2, 1.4, 0.8), moonSimRim);
+    outputColor.rgb += moonSimResSky * RECIPROCAL_PI * moonSimEclipseResidual * moonSimRimTint;
+  } else {
+    outputColor.rgb += groundAlbedo * RECIPROCAL_PI * (moonSimResSun + moonSimResSky) * moonSimEclipseResidual;
+  }
+}
+`;
+
+/**
+ * The Sun's disc, drawn here instead of by takram (`sun: false`) so the Moon can cover it. Added
+ * after the Sun's scattered light is scaled (eclipse dimming / twilight fade): the uncovered part of
+ * the photosphere keeps its full surface brightness while the sky around it darkens. Near totality
+ * a corona appears (sim/solarEclipse.ts). Angles via atan(|a×b|, a·b): acos loses the precision
+ * these sub-degree angles need in float32. Locals of takram's sky.frag main(): cameraPosition,
+ * rayDirection, fragmentAngle; sunDirection and cosSunAngularRadius are takram uniforms.
+ */
+const SUN_DISC_GLSL = /* glsl */ `
+{
+  float moonSimLen = length(cameraPosition);
+  float moonSimSkyR = max(moonSimLen, ATMOSPHERE.bottom_radius);
+  float moonSimSkyMu = dot(cameraPosition, rayDirection) / moonSimLen;
+  float moonSimSunR = ATMOSPHERE.sun_angular_radius;
+  float moonSimToSun = atan(length(cross(rayDirection, sunDirection)), dot(rayDirection, sunDirection));
+  if (moonSimToSun < moonSimSunR * 12.0 && !RayIntersectsGround(ATMOSPHERE, moonSimSkyR, moonSimSkyMu)) {
+    // The body-size aid enlarges both discs; enlarging the Moon's offset from the Sun by the same
+    // factor magnifies the true geometry around the Sun, so the aid never invents (or hides) an
+    // eclipse. At 1× this is the true Moon direction.
+    vec3 moonSimMaskMoon = normalize(sunDirection + (moonSimMoonDirection - sunDirection) * moonSimBodySize);
+    float moonSimToMoon = atan(
+      length(cross(rayDirection, moonSimMaskMoon)),
+      dot(rayDirection, moonSimMaskMoon)
+    );
+    // 1 clear of the Moon's limb, 0 behind it (antialiased).
+    float moonSimClear = smoothstep(
+      moonSimMoonAngularRadius - fragmentAngle,
+      moonSimMoonAngularRadius,
+      moonSimToMoon
+    );
+    float moonSimDisc = smoothstep(moonSimSunR, moonSimSunR - fragmentAngle, moonSimToSun);
+    float moonSimCorona = moonSimCoronaWeight * ${String(CORONA_K)} *
+      pow(moonSimSunR / max(moonSimToSun, moonSimSunR), ${CORONA_FALLOFF.toFixed(1)}) * (1.0 - moonSimDisc);
+    if (moonSimClear > 0.0 && moonSimDisc + moonSimCorona > 0.0) {
+      vec3 moonSimSunT = GetTransmittanceToTopAtmosphereBoundary(
+        ATMOSPHERE, transmittance_texture, moonSimSkyR, moonSimSkyMu);
+      outputColor.rgb += moonSimSunT * GetSolarRadiance() * (moonSimDisc + moonSimCorona) * moonSimClear;
+    }
+  }
+}
+`;
+
+/**
  * Display-only night floor for the sky (see sim/groundLight.ts): added after tone mapping, above the
  * horizon only, brighter toward the horizon. `rayDirection` and `cameraPosition` (planet-centred)
  * are locals of takram's sky.frag main().
@@ -160,6 +226,8 @@ export class DisplaySkyMaterial extends SkyMaterial {
     // perspective, through the same exposure and tone mapping as the sky.
     super({
       moon: false,
+      // Drawn by SUN_DISC_GLSL instead, so the Moon can eclipse it.
+      sun: false,
       groundAlbedo: new Color(GROUND_ALBEDO.x, GROUND_ALBEDO.y, GROUND_ALBEDO.z),
     });
     this.uniforms.moonSimExposure = new Uniform(INITIAL_EXPOSURE);
@@ -168,6 +236,27 @@ export class DisplaySkyMaterial extends SkyMaterial {
     this.uniforms.moonSimMoonDirection = new Uniform(new Vector3(0, 0, 1));
     this.uniforms.moonSimMoonScale = new Uniform(0);
     this.uniforms.moonSimSunScale = new Uniform(1);
+    this.uniforms.moonSimMoonAngularRadius = new Uniform(0);
+    this.uniforms.moonSimCoronaWeight = new Uniform(0);
+    this.uniforms.moonSimEclipseResidual = new Uniform(0);
+    this.uniforms.moonSimBodySize = new Uniform(1);
+  }
+
+  /**
+   * Solar eclipse: the Moon's rendered angular radius (radians, same body-size scaling as the Sun's
+   * disc), the corona's visibility (sim/solarEclipse.ts coronaWeight), the scattered-in residual
+   * light (totalityResidual) and the body-size aid (so masking magnifies the true geometry).
+   */
+  setSolarEclipse(
+    moonAngularRadius: number,
+    coronaWeight: number,
+    residual: number,
+    bodySize: number,
+  ): void {
+    (this.uniforms.moonSimBodySize as Uniform<number>).value = bodySize;
+    (this.uniforms.moonSimMoonAngularRadius as Uniform<number>).value = moonAngularRadius;
+    (this.uniforms.moonSimCoronaWeight as Uniform<number>).value = coronaWeight;
+    (this.uniforms.moonSimEclipseResidual as Uniform<number>).value = residual;
   }
 
   /** Moonlight: Moon direction (ECEF) and its light relative to the Sun's (0 = off). */
@@ -198,9 +287,12 @@ export class DisplaySkyMaterial extends SkyMaterial {
   override onBeforeCompile(p: WebGLProgramParametersWithUniforms, r: WebGLRenderer): void {
     p.fragmentShader = p.fragmentShader.replace(
       'precision highp sampler3D;',
-      'precision highp sampler3D;\nuniform vec2 moonSimSkyFloor;\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;',
+      'precision highp sampler3D;\nuniform vec2 moonSimSkyFloor;\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;\nuniform float moonSimMoonAngularRadius;\nuniform float moonSimCoronaWeight;\nuniform float moonSimEclipseResidual;\nuniform float moonSimBodySize;',
     );
-    injectDisplay(p, { before: MOONLIGHT_GLSL, after: SKY_FLOOR_GLSL });
+    injectDisplay(p, {
+      before: MOONLIGHT_GLSL + ECLIPSE_RESIDUAL_GLSL + SUN_DISC_GLSL,
+      after: SKY_FLOOR_GLSL,
+    });
     super.onBeforeCompile(p, r);
   }
 }
@@ -217,6 +309,12 @@ export class DisplaySkyMaterial extends SkyMaterial {
 const STARS_GLSL = /* glsl */ `
 {
   vec3 moonSimSky = (radiance - transmittance * vColor) * moonSimSunScale;
+  if (moonSimEclipseResidual > 0.0) {
+    vec3 moonSimUp = normalize(vCameraPosition);
+    vec3 moonSimResSky;
+    GetSunAndSkyIrradiance(vCameraPosition, moonSimUp, sunDirection, moonSimResSky);
+    moonSimSky += moonSimResSky * 0.3183098861837907 * moonSimEclipseResidual; // 1/π
+  }
   if (moonSimMoonScale > 0.0) {
     vec3 moonSimTransmittance;
     moonSimSky += moonSimMoonScale * GetSkyRadiance(
@@ -241,6 +339,7 @@ export class DisplayStarsMaterial extends StarsMaterial {
     this.uniforms.moonSimMoonScale = new Uniform(0);
     this.uniforms.moonSimSunScale = new Uniform(1);
     this.uniforms.moonSimStarScale = new Uniform(1);
+    this.uniforms.moonSimEclipseResidual = new Uniform(0);
     this.blending = AdditiveBlending;
     this.depthWrite = false;
   }
@@ -254,12 +353,14 @@ export class DisplayStarsMaterial extends StarsMaterial {
     (this.uniforms.moonSimStarScale as Uniform<number>).value = starExposure / exposure;
   }
 
-  /** Same light sources as the sky (see DisplaySkyMaterial). */
+  /** Same light sources as the sky (see DisplaySkyMaterial), including any eclipse residual. */
   setLighting(
     moon: { x: number; y: number; z: number },
     moonScale: number,
     sunScale: number,
+    eclipseResidual = 0,
   ): void {
+    (this.uniforms.moonSimEclipseResidual as Uniform<number>).value = eclipseResidual;
     (this.uniforms.moonSimMoonDirection as Uniform<Vector3>).value.set(moon.x, moon.y, moon.z);
     (this.uniforms.moonSimMoonScale as Uniform<number>).value = moonScale;
     (this.uniforms.moonSimSunScale as Uniform<number>).value = sunScale;
@@ -269,7 +370,7 @@ export class DisplayStarsMaterial extends StarsMaterial {
     p.fragmentShader = p.fragmentShader
       .replace(
         'precision highp sampler3D;',
-        `precision highp sampler3D;\n${DISPLAY_GLSL}\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;\nuniform float moonSimStarScale;`,
+        `precision highp sampler3D;\n${DISPLAY_GLSL}\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;\nuniform float moonSimStarScale;\nuniform float moonSimEclipseResidual;`,
       )
       .replace('#include <mrt_output>', `${STARS_GLSL}\n#include <mrt_output>`);
     super.onBeforeCompile(p, r);

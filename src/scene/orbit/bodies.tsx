@@ -4,7 +4,7 @@ import { Quaternion, SRGBColorSpace, Vector3, type Texture } from 'three';
 import { ErrorBoundary } from '../../ErrorBoundary';
 import type { OrbitScene } from '../../sim/orbitScene';
 import { GREENWICH_POINT, NEAR_SIDE_POINT } from '../bodyLocal';
-import type { EclipseUniforms } from '../eclipseShading';
+import type { EclipseBody, EclipseUniforms } from '../eclipseShading';
 import { EclipseAwareStandardMaterial } from '../EclipseAwareStandardMaterial';
 import { TEXTURE_URLS } from '../textures';
 import { useEclipseUniforms } from '../useEclipseUniforms';
@@ -53,17 +53,19 @@ function Graticule({ color }: { color: string }) {
 interface SurfaceProps {
   url: string;
   roughness: number;
-  /** Moon only: sunlight follows Earth's shadow. */
+  /** Sunlight follows eclipse shadows: Earth's on the Moon, or the Moon's on Earth. */
   eclipse?: EclipseUniforms | undefined;
+  body?: EclipseBody;
 }
 
 /** meshStandardMaterial, eclipse-aware when given eclipse uniforms. */
 function SurfaceMaterial({
   eclipse,
+  body = 'moon',
   ...props
 }: Omit<SurfaceProps, 'url'> & { map?: Texture; color?: string }) {
   return eclipse ? (
-    <EclipseAwareStandardMaterial eclipse={eclipse} metalness={0} {...props} />
+    <EclipseAwareStandardMaterial eclipse={eclipse} body={body} metalness={0} {...props} />
   ) : (
     <meshStandardMaterial metalness={0} {...props} />
   );
@@ -73,7 +75,7 @@ function SurfaceMaterial({
  * Equirectangular map on a unit sphere. three's SphereGeometry UVs put lon 0 at the local +x axis,
  * matching our body-frame convention (verified in textureMapping.test.ts).
  */
-function TexturedSurface({ url, roughness, eclipse }: SurfaceProps) {
+function TexturedSurface({ url, roughness, eclipse, body }: SurfaceProps) {
   const map = useTexture(url, (t) => {
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = 8;
@@ -81,7 +83,7 @@ function TexturedSurface({ url, roughness, eclipse }: SurfaceProps) {
   return (
     <mesh>
       <sphereGeometry args={[1, 96, 48]} />
-      <SurfaceMaterial map={map} roughness={roughness} eclipse={eclipse} />
+      <SurfaceMaterial map={map} roughness={roughness} eclipse={eclipse} {...(body && { body })} />
     </mesh>
   );
 }
@@ -90,36 +92,52 @@ interface PlainProps {
   color: string;
   gridColor: string;
   eclipse?: EclipseUniforms | undefined;
+  body?: EclipseBody;
 }
 
 /** Plain sphere plus grid: shown while the texture loads, or instead of it if loading fails. */
-function PlainSurface({ color, gridColor, eclipse }: PlainProps) {
+function PlainSurface({ color, gridColor, eclipse, body }: PlainProps) {
   return (
     <>
       <mesh>
         <sphereGeometry args={[1, 64, 32]} />
-        <SurfaceMaterial color={color} roughness={1} eclipse={eclipse} />
+        <SurfaceMaterial color={color} roughness={1} eclipse={eclipse} {...(body && { body })} />
       </mesh>
       <Graticule color={gridColor} />
     </>
   );
 }
 
-function Surface({ url, roughness, eclipse, ...plain }: SurfaceProps & PlainProps) {
-  const fallback = <PlainSurface {...plain} eclipse={eclipse} />;
+function Surface({ url, roughness, eclipse, body, ...plain }: SurfaceProps & PlainProps) {
+  const fallback = <PlainSurface {...plain} eclipse={eclipse} {...(body && { body })} />;
   return (
     <ErrorBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
-        <TexturedSurface url={url} roughness={roughness} eclipse={eclipse} />
+        <TexturedSurface
+          url={url}
+          roughness={roughness}
+          eclipse={eclipse}
+          {...(body && { body })}
+        />
       </Suspense>
     </ErrorBoundary>
   );
 }
 
 export function Earth() {
+  // The Moon's shadow during solar eclipses. No auto-exposure (compression 0): the shadow should
+  // read as the dark spot it is.
+  const eclipse = useEclipseUniforms('orbit', 0);
   return (
     <OrbitBody select={selectEarth}>
-      <Surface url={TEXTURE_URLS.earth} roughness={0.9} color="#2a5d9f" gridColor="#9fc3ff" />
+      <Surface
+        url={TEXTURE_URLS.earth}
+        roughness={0.9}
+        color="#2a5d9f"
+        gridColor="#9fc3ff"
+        eclipse={eclipse}
+        body="earth"
+      />
       <SurfaceSpike at={GREENWICH_POINT} length={0.25} color="#ffd34d" />
     </OrbitBody>
   );
