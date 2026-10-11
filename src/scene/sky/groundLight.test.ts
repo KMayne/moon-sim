@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { getSunLightColor, SkyLightProbe } from '@takram/three-atmosphere';
 import { readFileSync } from 'node:fs';
 import { Color, DataTexture, HalfFloatType, Vector3 } from 'three';

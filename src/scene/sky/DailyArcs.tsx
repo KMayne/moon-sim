@@ -25,12 +25,25 @@ const ARC_OPACITY = 0.55;
 const SUN_RGB = [1, 0.81, 0.4] as const;
 const MOON_RGB = [0.79, 0.83, 1] as const;
 
+/** Fraction of each half (from the current position outward) drawn before fading out. */
+const SOLID_FRACTION = 0.8;
+
 /**
- * Below-horizon samples are fully transparent. The ground would hide them too, but at grazing
- * angles 20 km away its depth test z-fights into a streak along the horizon.
+ * Per-sample opacity:
+ * - below-horizon samples are fully transparent. The ground would hide them too, but at grazing
+ *   angles 20 km away its depth test z-fights into a streak along the horizon;
+ * - both ends fade out. ±12 h is a full turn of the sky, so the ends meet — but not exactly (the
+ *   Moon drifts ~13°/day and changes declination), which would otherwise show as a step.
  */
-const toColors = (dirs: readonly Vec3[], rgb: readonly [number, number, number]): Colors =>
-  dirs.map((d) => [...rgb, d.y >= 0 ? ARC_OPACITY : 0]);
+function toColors(dirs: readonly Vec3[], rgb: readonly [number, number, number]): Colors {
+  const half = (dirs.length - 1) / 2;
+  return dirs.map((d, i) => {
+    const s = Math.abs(i - half) / half;
+    const t = Math.min(1, Math.max(0, (s - SOLID_FRACTION) / (1 - SOLID_FRACTION)));
+    const endFade = 1 - t * t * (3 - 2 * t);
+    return [...rgb, d.y >= 0 ? ARC_OPACITY * endFade : 0];
+  });
+}
 
 interface Arc {
   points: Points;
