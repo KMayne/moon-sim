@@ -37,3 +37,26 @@ kianmayne.co.uk repo). Production builds need the subpath:
 ```sh
 BASE_PATH=/moon-sim/ npm run build
 ```
+
+## Credits
+
+- **Earth texture:** Blue Marble: Next Generation, NASA Earth Observatory / Reto Stöckli (public
+  domain).
+- **Moon texture:** CGI Moon Kit, NASA's Scientific Visualization Studio, from LRO data (public
+  domain).
+- **Ephemerides:** [Astronomy Engine](https://github.com/cosinekitty/astronomy) by Don Cross (MIT).
+- **Sky:** [takram three-atmosphere](https://github.com/takram-design-engineering/three-geospatial)
+  (MIT), after Eric Bruneton's precomputed atmospheric scattering.
+- **Stars:** Yale Bright Star Catalog, 5th revised edition (Hoffleit & Warren), via takram.
+- **Place search and names:** [Photon](https://photon.komoot.io), © OpenStreetMap contributors
+  (ODbL).
+- **Time zones:** [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder)
+  (OpenStreetMap data, ODbL) via `@photostructure/tz-lookup` (CC0).
+
+Asset provenance is in `public/textures/PROVENANCE.md` and `public/atmosphere/PROVENANCE.md`.
+Every production build ships `third-party-licenses.md` with the licence texts of all bundled
+packages (Vite `build.license`).
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).

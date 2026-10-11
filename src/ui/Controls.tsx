@@ -1,4 +1,5 @@
 import { Divider } from '@mantine/core';
+import { CreditsSection } from './controls/CreditsSection';
 import { FlairSection } from './controls/FlairSection';
 import { ObserverSection } from './controls/ObserverSection';
 import { VisualAidsSection } from './controls/VisualAidsSection';
@@ -15,6 +16,8 @@ export function Controls() {
       <VisualAidsSection />
       <Divider />
       <FlairSection />
+      <Divider />
+      <CreditsSection />
     </>
   );
 }
