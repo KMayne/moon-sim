@@ -18,12 +18,15 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@mantine/core": "9.7.2",
+    "@mantine/dates": "9.7.2",
+    "@mantine/hooks": "9.7.2",
     "@photostructure/tz-lookup": "11.7.0",
     "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.1",
     "@takram/three-atmosphere": "0.19.1",
     "astronomy-engine": "2.1.19",
-    "leva": "0.10.1",
+    "dayjs": "1.11.23",
     "lucide-react": "1.55.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

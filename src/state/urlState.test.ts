@@ -44,7 +44,11 @@ describe('playback in links', () => {
 
 describe('serializeUrlState', () => {
   it('round-trips presets and custom locations', () => {
-    for (const location of [LOCATION_PRESETS['mauna-kea'], customLocation(-33.8688, 151.2093)]) {
+    for (const location of [
+      LOCATION_PRESETS['mauna-kea'],
+      customLocation(-33.8688, 151.2093),
+      customLocation(64.1466, -21.9426, 'Reykjavík, Iceland'),
+    ]) {
       const state = {
         location,
         timeMs: Date.UTC(2026, 9, 11, 22, 30),

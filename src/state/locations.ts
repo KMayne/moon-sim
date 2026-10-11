@@ -16,10 +16,17 @@ export const LOCATION_PRESETS: Record<LocationPresetId, ObserverLocation> = {
 
 export const DEFAULT_LOCATION = LOCATION_PRESETS.tromso;
 
-export function customLocation(latitude: number, longitude: number): ObserverLocation {
+export const CUSTOM_LABEL = 'Custom';
+
+/** Any point on Earth; `label` names it (e.g. a searched place). */
+export function customLocation(
+  latitude: number,
+  longitude: number,
+  label: string = CUSTOM_LABEL,
+): ObserverLocation {
   return {
     id: 'custom',
-    label: 'Custom',
+    label,
     latitude: Math.min(90, Math.max(-90, latitude)),
     longitude: ((((longitude + 180) % 360) + 360) % 360) - 180,
   };

@@ -5,7 +5,6 @@ import { SkyView } from './scene/sky/SkyView';
 import { SimulationCanvas } from './scene/SimulationCanvas';
 import { useSimStore } from './state/store';
 import { useUrlSync } from './state/useUrlSync';
-import { AuroraHint } from './ui/AuroraHint';
 import { Controls } from './ui/Controls';
 import { Hud } from './ui/Hud';
 import { MoonDiscPanel } from './ui/MoonDiscPanel';
@@ -50,7 +49,6 @@ export function App() {
         <div className="sidebar__scroll">
           <Hud snap={snap} />
           <Controls />
-          <AuroraHint />
         </div>
       </aside>
     </div>

@@ -1,6 +1,7 @@
 import { MAX_SIM_TIME, MIN_SIM_TIME } from '../sim/clock';
 import { playbackFromSpeed, playbackSpeed, type Playback } from '../sim/playback';
 import {
+  CUSTOM_LABEL,
   customLocation,
   LOCATION_PRESETS,
   type LocationPresetId,
@@ -23,7 +24,7 @@ function parseNumber(text: string | null): number | undefined {
 }
 
 /**
- * Reads `?loc=tromso` or `?lat=..&lon=..`, `t=<ISO 8601>`, `speed=<signed step speed>` and
+ * Reads `?loc=tromso` or `?lat=..&lon=..[&name=..]`, `t=<ISO 8601>`, `speed=<signed step speed>` and
  * `paused=1`. Speeds must be one of the playback steps; `speed=0` (older links) means paused.
  */
 export function parseUrlState(search: string): UrlState {
@@ -36,7 +37,8 @@ export function parseUrlState(search: string): UrlState {
   if (loc !== null && isPresetId(loc)) {
     state.location = LOCATION_PRESETS[loc];
   } else if (lat !== undefined && lon !== undefined && Math.abs(lat) <= 90) {
-    state.location = customLocation(lat, lon);
+    const name = params.get('name')?.trim();
+    state.location = customLocation(lat, lon, name || undefined);
   }
 
   const t = params.get('t');
@@ -64,6 +66,7 @@ export function serializeUrlState({ location, timeMs, playback }: Required<UrlSt
   if (location.id === 'custom') {
     params.set('lat', round(location.latitude));
     params.set('lon', round(location.longitude));
+    if (location.label !== CUSTOM_LABEL) params.set('name', location.label);
   } else {
     params.set('loc', location.id);
   }

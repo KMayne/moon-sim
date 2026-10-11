@@ -25,7 +25,7 @@ npm run build
 | `src/sim/`   | Pure clock + scene math (frames, visual-aid scaling). Depends only on astro/. |
 | `src/state/` | zustand store: settings and the single sim clock.                             |
 | `src/scene/` | React Three Fiber views.                                                      |
-| `src/ui/`    | Controls (Leva, confined to `Controls.tsx`) and HUD.                          |
+| `src/ui/`    | Sidebar controls (Mantine), transport bar, HUD and phase disc panel.          |
 
 Layering is enforced by `no-restricted-imports` in `eslint.config.js`.
 
