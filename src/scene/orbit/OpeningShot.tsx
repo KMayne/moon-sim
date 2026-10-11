@@ -4,6 +4,7 @@ import type { PerspectiveCamera, Vector3 } from 'three';
 import { EARTH_RADIUS_KM } from '../../astro/constants';
 import { vec } from '../../astro/vec';
 import { fitOpeningShot } from '../../sim/openingShot';
+import { useSimStore } from '../../state/store';
 import { PRIORITY, useFrameRef } from '../frame';
 import { SUN_DISTANCE } from './Sun';
 
@@ -49,6 +50,11 @@ export function OpeningShot({ maxDistance }: { maxDistance: number }) {
 
   useFrame(() => {
     if (userHasMoved.current || !controls) return;
+    // Focusing the Moon hands the camera to <FocusRig> for good.
+    if (useSimStore.getState().orbitFocus !== 'earth') {
+      userHasMoved.current = true;
+      return;
+    }
     const state = fitted.current;
     // drei's View sets camera.aspect from its tracked element when it renders, which happens after
     // this callback — so the first frame's aspect is not yet the view's.

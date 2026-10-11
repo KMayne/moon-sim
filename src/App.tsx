@@ -7,6 +7,7 @@ import { SimulationCanvas } from './scene/SimulationCanvas';
 import { useSimStore } from './state/store';
 import { useUrlSync } from './state/useUrlSync';
 import { Controls } from './ui/Controls';
+import { OrbitFocusToggle } from './ui/OrbitFocusToggle';
 import { EclipsesSection } from './ui/controls/EclipsesSection';
 import { Hud } from './ui/Hud';
 import { MoonDiscPanel } from './ui/MoonDiscPanel';
@@ -41,7 +42,10 @@ export function App() {
         <SimulationCanvas eventSource={app} />
       </ErrorBoundary>
       <main className="views">
-        <OrbitView className="view view--orbit" />
+        <div className="view-cell">
+          <OrbitView className="view view--orbit" />
+          <OrbitFocusToggle />
+        </div>
         <div className="view-cell">
           <SkyView className="view view--sky" />
           <MoonDiscPanel snap={snap} />

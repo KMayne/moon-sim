@@ -34,6 +34,9 @@ interface SimStore {
   /** Visual aids only (render-time); 1 = true scale. Never fed back into astronomy. */
   visualScale: VisualScale;
   setVisualScale: (scale: Partial<VisualScale>) => void;
+  /** Which body the orbit view's camera centres on and follows. */
+  orbitFocus: OrbitFocus;
+  setOrbitFocus: (focus: OrbitFocus) => void;
   /** Cosmetic aurora in the sky view. Flair only: not simulated, off by default. */
   auroraEnabled: boolean;
   setAuroraEnabled: (enabled: boolean) => void;
@@ -43,6 +46,8 @@ interface SimStore {
 }
 
 export { TRUE_SCALE, type VisualScale };
+
+export type OrbitFocus = 'earth' | 'moon';
 
 /** Anything a shared link pins down (location, time, speed) overrides the defaults. */
 const fromUrl = typeof window === 'undefined' ? {} : parseUrlState(window.location.search);
@@ -92,6 +97,10 @@ export const useSimStore = create<SimStore>()((set, get) => {
     visualScale: TRUE_SCALE,
     setVisualScale: (scale) => {
       set((s) => ({ visualScale: { ...s.visualScale, ...scale } }));
+    },
+    orbitFocus: 'earth',
+    setOrbitFocus: (orbitFocus) => {
+      set({ orbitFocus });
     },
     auroraEnabled: false,
     setAuroraEnabled: (auroraEnabled) => {

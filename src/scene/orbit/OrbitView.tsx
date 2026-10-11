@@ -3,6 +3,7 @@ import type { OrbitScene } from '../../sim/orbitScene';
 import { BodyMarker } from '../markers/BodyMarker';
 import { Earth, Moon } from './bodies';
 import { EarthShadow } from './EarthShadow';
+import { FocusRig } from './FocusRig';
 import { OpeningShot } from './OpeningShot';
 import { OrbitPath } from './OrbitPath';
 import { Sun } from './Sun';
@@ -31,6 +32,7 @@ export function OrbitView({ className }: { className: string }) {
         maxDistance={MAX_CAMERA_DISTANCE}
       />
       <OpeningShot maxDistance={MAX_CAMERA_DISTANCE} />
+      <FocusRig />
 
       {/* Just enough fill to make out night sides; terminators come from the Sun alone. */}
       <ambientLight intensity={0.02} />
