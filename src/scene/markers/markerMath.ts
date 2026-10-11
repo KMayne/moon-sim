@@ -26,10 +26,10 @@ export function sphereRadiusPx(
 }
 
 /**
- * Marker opacity: fully shown while the body is much smaller than the ring, gone once the body is
- * bigger than the ring (you can see the body itself by then).
+ * Marker opacity: fully shown while the body is much smaller than the label clearance, gone once
+ * the body reaches the label (you can see the body itself by then).
  */
-export function markerOpacity(bodyRadiusPx: number, ringRadiusPx: number): number {
-  const t = (bodyRadiusPx - 0.5 * ringRadiusPx) / ringRadiusPx;
+export function markerOpacity(bodyRadiusPx: number, clearancePx: number): number {
+  const t = (bodyRadiusPx - 0.5 * clearancePx) / clearancePx;
   return Math.min(1, Math.max(0, 1 - t));
 }

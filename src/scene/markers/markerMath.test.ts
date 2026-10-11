@@ -51,7 +51,7 @@ describe('screen-space marker maths', () => {
     expect(sphereRadiusPx(2, 1, H, proj11)).toBe(Infinity);
   });
 
-  it('fades the marker out as the body grows past the ring', () => {
+  it('fades the marker out as the body grows into the label', () => {
     expect(markerOpacity(0.1, 10)).toBe(1);
     expect(markerOpacity(5, 10)).toBe(1);
     expect(markerOpacity(10, 10)).toBeCloseTo(0.5, 12);
