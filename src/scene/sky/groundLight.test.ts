@@ -34,7 +34,7 @@ const toVec = (c: Color | Vector3): Vec3 =>
 const observer = LOCATION_PRESETS.tromso;
 
 function lightingAt(ms: number) {
-  const sky = toSkyScene(computeSystemState(new Date(ms)), observer, { moonSize: 1 });
+  const sky = toSkyScene(computeSystemState(new Date(ms)), observer, { bodySize: 1 });
   const position = new Vector3(sky.observerEcefM.x, sky.observerEcefM.y, sky.observerEcefM.z);
   const sun = new Vector3(sky.sunDirectionEcef.x, sky.sunDirectionEcef.y, sky.sunDirectionEcef.z);
 

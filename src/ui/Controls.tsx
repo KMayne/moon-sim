@@ -1,6 +1,6 @@
 import { button, Leva, useControls } from 'leva';
 import { useEffect, useRef } from 'react';
-import { MOON_SIZE_RANGE, TRUE_SCALE } from '../sim/visualScale';
+import { BODY_SIZE_RANGE, TRUE_SCALE } from '../sim/visualScale';
 import { customLocation, LOCATION_PRESETS, type ObserverLocation } from '../state/locations';
 import { useSimStore } from '../state/store';
 import {
@@ -90,11 +90,11 @@ export function Controls() {
   // The panel's setter only exists after useControls returns, so the button reaches it via a ref.
   const resetAids = useRef<(() => void) | null>(null);
   const [aids, setAidsPanel] = useControls('Visual aids — NOT true scale', () => ({
-    moonSize: {
-      label: 'moon size ×',
-      value: TRUE_SCALE.moonSize,
-      min: MOON_SIZE_RANGE.min,
-      max: MOON_SIZE_RANGE.max,
+    bodySize: {
+      label: 'body size ×',
+      value: TRUE_SCALE.bodySize,
+      min: BODY_SIZE_RANGE.min,
+      max: BODY_SIZE_RANGE.max,
       step: 0.5,
     },
     moonDistance: {
@@ -114,8 +114,8 @@ export function Controls() {
   }, [setAidsPanel]);
 
   useEffect(() => {
-    setVisualScale({ moonSize: aids.moonSize, moonDistance: aids.moonDistance });
-  }, [aids.moonSize, aids.moonDistance, setVisualScale]);
+    setVisualScale({ bodySize: aids.bodySize, moonDistance: aids.moonDistance });
+  }, [aids.bodySize, aids.moonDistance, setVisualScale]);
 
   const setAuroraEnabled = useSimStore((s) => s.setAuroraEnabled);
   const flair = useControls('Flair — not simulated', {

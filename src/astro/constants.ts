@@ -3,6 +3,9 @@ export { KM_PER_AU } from 'astronomy-engine';
 /** WGS 84 equatorial radius. */
 export const EARTH_RADIUS_KM = 6378.137;
 
+/** IAU 2015 nominal solar radius. */
+export const SUN_RADIUS_KM = 695_700;
+
 /** IAU mean lunar radius. */
 export const MOON_RADIUS_KM = 1737.4;
 

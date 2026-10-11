@@ -6,7 +6,7 @@ import { sampleMoonOrbitEqj } from './orbitPath';
 import { KM_TO_SCENE, toOrbitScene } from './orbitScene';
 import {
   MOON_DISTANCE_RANGE,
-  MOON_SIZE_RANGE,
+  BODY_SIZE_RANGE,
   minMoonDistance,
   resolveVisualScale,
   TRUE_SCALE,
@@ -18,10 +18,10 @@ const T = Date.UTC(2026, 3, 14, 6);
 
 /** The most extreme settings the UI allows. */
 const EXTREME: VisualScale = {
-  moonSize: MOON_SIZE_RANGE.max,
+  bodySize: BODY_SIZE_RANGE.max,
   moonDistance: MOON_DISTANCE_RANGE.min,
 };
-const CLOSE: VisualScale = { moonSize: 1, moonDistance: MOON_DISTANCE_RANGE.min };
+const CLOSE: VisualScale = { bodySize: 1, moonDistance: MOON_DISTANCE_RANGE.min };
 
 describe('resolveVisualScale', () => {
   it('defaults to true scale', () => {
@@ -30,20 +30,20 @@ describe('resolveVisualScale', () => {
   });
 
   it('clamps requests to the supported ranges', () => {
-    expect(resolveVisualScale({ moonSize: 100, moonDistance: 3 })).toEqual({
-      moonSize: MOON_SIZE_RANGE.max,
+    expect(resolveVisualScale({ bodySize: 100, moonDistance: 3 })).toEqual({
+      bodySize: BODY_SIZE_RANGE.max,
       moonDistance: 1,
     });
-    expect(resolveVisualScale({ moonSize: 0.1, moonDistance: 0.001 })).toEqual({
-      moonSize: 1,
+    expect(resolveVisualScale({ bodySize: 0.1, moonDistance: 0.001 })).toEqual({
+      bodySize: 1,
       moonDistance: MOON_DISTANCE_RANGE.min,
     });
   });
 
   it('pushes a large Moon out just far enough to clear Earth', () => {
     const resolved = resolveVisualScale(EXTREME);
-    expect(resolved.moonSize).toBe(MOON_SIZE_RANGE.max);
-    expect(resolved.moonDistance).toBeCloseTo(minMoonDistance(MOON_SIZE_RANGE.max), 12);
+    expect(resolved.bodySize).toBe(BODY_SIZE_RANGE.max);
+    expect(resolved.moonDistance).toBeCloseTo(minMoonDistance(BODY_SIZE_RANGE.max), 12);
     expect(resolved.moonDistance).toBeGreaterThan(MOON_DISTANCE_RANGE.min);
     // A true-size Moon can come all the way in.
     expect(resolveVisualScale(CLOSE)).toEqual(CLOSE);
@@ -53,19 +53,22 @@ describe('resolveVisualScale', () => {
 describe('visual aids in the orbit scene', () => {
   const state = computeSystemState(new Date(T));
   const truth = toOrbitScene(state);
-  const aided = toOrbitScene(state, { moonSize: 10, moonDistance: 0.2 });
+  // 0.5× is above the clearance minimum for 10× bodies, so it applies unmodified.
+  const aided = toOrbitScene(state, { bodySize: 10, moonDistance: 0.5 });
 
-  it('scales the Moon radius by moonSize exactly', () => {
+  it('scales Earth and Moon radii by bodySize exactly', () => {
     expect(aided.moon.radius).toBeCloseTo(truth.moon.radius * 10, 12);
+    expect(aided.earth.radius).toBeCloseTo(truth.earth.radius * 10, 12);
   });
 
   it('scales the Moon distance by moonDistance exactly, keeping its direction', () => {
-    expect(length(aided.moon.position)).toBeCloseTo(length(truth.moon.position) * 0.2, 9);
+    expect(length(aided.moon.position)).toBeCloseTo(length(truth.moon.position) * 0.5, 9);
     expect(angleBetweenDeg(aided.moon.position, truth.moon.position)).toBeCloseTo(0, 9);
   });
 
-  it('leaves Earth, the Sun, the Moon orientation and the frame untouched', () => {
-    expect(aided.earth).toEqual(truth.earth);
+  it('leaves positions of Earth and Sun, orientations and the frame untouched', () => {
+    expect(aided.earth.position).toEqual(truth.earth.position);
+    expect(aided.earth.rotation).toEqual(truth.earth.rotation);
     expect(aided.sunDirection).toEqual(truth.sunDirection);
     expect(aided.eqjToScene).toEqual(truth.eqjToScene);
     expect(aided.moon.rotation).toEqual(truth.moon.rotation);

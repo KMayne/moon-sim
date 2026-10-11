@@ -74,6 +74,7 @@ export function Atmosphere() {
     sky.setMoonlight(moon.x, moon.y, moon.z, moonScale);
     sky.setSunScale(sunScale);
     sky.setExposure(exposure);
+    sky.setSunDiscRadius(frame.sky.sunAngularRadius);
     starsMaterial.setLighting(moon, moonScale, sunScale);
     starsMaterial.setExposure(exposure, starExposure(exposure));
     for (const material of [sky, starsMaterial]) {

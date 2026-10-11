@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
-import { AdditiveBlending, CanvasTexture, SRGBColorSpace } from 'three';
+import { useFrame } from '@react-three/fiber';
+import { useMemo, useRef } from 'react';
+import { AdditiveBlending, CanvasTexture, SRGBColorSpace, type Group } from 'three';
+import { PRIORITY, useFrameRef } from '../frame';
 
 /** Sun distance in scene units: far enough to look distant, inside the camera's far plane. */
 export const SUN_DISTANCE = 1500;
@@ -34,24 +36,35 @@ function makeGlowTexture(): CanvasTexture | null {
  */
 export function Sun() {
   const glow = useMemo(() => makeGlowTexture(), []);
+  const frameRef = useFrameRef();
+  const disc = useRef<Group>(null);
+
+  // The body-size visual aid enlarges the disc and glow (never the light).
+  useFrame(() => {
+    const bodySize = frameRef.current?.orbit.visualScale.bodySize ?? 1;
+    disc.current?.scale.setScalar(bodySize);
+  }, PRIORITY.update);
+
   return (
     <group position={[SUN_DISTANCE, 0, 0]}>
       <directionalLight intensity={3} />
-      <mesh>
-        <sphereGeometry args={[SUN_RADIUS, 32, 16]} />
-        <meshBasicMaterial color="#fff6e0" toneMapped={false} />
-      </mesh>
-      {glow && (
-        <sprite scale={SUN_RADIUS * GLOW_SCALE}>
-          <spriteMaterial
-            map={glow}
-            blending={AdditiveBlending}
-            depthWrite={false}
-            transparent
-            toneMapped={false}
-          />
-        </sprite>
-      )}
+      <group ref={disc}>
+        <mesh>
+          <sphereGeometry args={[SUN_RADIUS, 32, 16]} />
+          <meshBasicMaterial color="#fff6e0" toneMapped={false} />
+        </mesh>
+        {glow && (
+          <sprite scale={SUN_RADIUS * GLOW_SCALE}>
+            <spriteMaterial
+              map={glow}
+              blending={AdditiveBlending}
+              depthWrite={false}
+              transparent
+              toneMapped={false}
+            />
+          </sprite>
+        )}
+      </group>
     </group>
   );
 }

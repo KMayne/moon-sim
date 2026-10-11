@@ -44,12 +44,12 @@ export function toOrbitScene(state: SystemState, requested: VisualScale = TRUE_S
     earth: {
       position: { x: 0, y: 0, z: 0 },
       rotation: orient(state.earthOrientation),
-      radius: 1,
+      radius: visualScale.bodySize,
     },
     moon: {
       position: scale(place(state.moon), visualScale.moonDistance),
       rotation: orient(state.moonOrientation),
-      radius: MOON_RADIUS_KM * KM_TO_SCENE * visualScale.moonSize,
+      radius: MOON_RADIUS_KM * KM_TO_SCENE * visualScale.bodySize,
     },
     sunDirection: normalize(place(state.sun)),
     eqjToScene: mul(Z_UP_TO_THREE, eqjToSunFixed),

@@ -20,7 +20,7 @@ const DEG = 180 / Math.PI;
 
 const discAt = (ms: number, observer = TROMSO) => {
   const state = computeSystemState(new Date(ms));
-  return toDiscScene(state, toSkyScene(state, observer, { moonSize: 1 }));
+  return toDiscScene(state, toSkyScene(state, observer, { bodySize: 1 }));
 };
 
 /** Sky-world unit vector (x north, y up, z east) for an alt/az. */

@@ -65,8 +65,8 @@ describe('rendered scene graph', () => {
     expect(pole.x).toBeGreaterThan(0);
   });
   for (const scale of [
-    { moonSize: 1, moonDistance: 0.05 },
-    { moonSize: 25, moonDistance: 0.05 },
+    { bodySize: 1, moonDistance: 0.05 },
+    { bodySize: 25, moonDistance: 0.05 },
   ] satisfies VisualScale[]) {
     it(`near-side marker faces Earth with visual aids ${JSON.stringify(scale)}`, () => {
       const start = Date.UTC(2026, 3, 1);
@@ -79,7 +79,7 @@ describe('rendered scene graph', () => {
   }
 
   it('scaled Moon marker sits on the scaled surface', () => {
-    const { moon } = placed(Date.UTC(2026, 3, 1), { moonSize: 25, moonDistance: 1 });
+    const { moon } = placed(Date.UTC(2026, 3, 1), { bodySize: 25, moonDistance: 1 });
     const markerWorld = moon.localToWorld(NEAR_SIDE_POINT.clone());
     expect(markerWorld.distanceTo(moon.position)).toBeCloseTo(0.2724 * 25, 2);
   });

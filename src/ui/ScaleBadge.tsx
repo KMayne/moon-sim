@@ -14,7 +14,7 @@ export function ScaleBadge() {
     <div className="scale-badge" role="status">
       <strong>Visual aid active: not to scale</strong>
       <span>
-        Moon size {fmt(applied.moonSize)}, distance {fmt(applied.moonDistance)}
+        Body size {fmt(applied.bodySize)}, distance {fmt(applied.moonDistance)}
         {raised && ' (raised so the Moon clears Earth)'}
       </span>
     </div>

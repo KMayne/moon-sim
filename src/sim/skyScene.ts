@@ -1,4 +1,4 @@
-import { MOON_RADIUS_KM } from '../astro/constants';
+import { MOON_RADIUS_KM, SUN_RADIUS_KM } from '../astro/constants';
 import type { SystemState } from '../astro/ephemeris';
 import {
   altAz,
@@ -38,21 +38,23 @@ export interface SkyScene {
   /** Direct moonlight on the ground, relative to an overhead Sun outside the atmosphere. */
   readonly moonlightOnGround: number;
   readonly moon: AltAz;
-  /** Rendered angular radius of the Moon: true topocentric value × the moon-size visual aid. */
+  /** Rendered angular radius of the Moon: true topocentric value × the body-size visual aid. */
   readonly moonAngularRadius: number;
+  /** Rendered angular radius of the Sun's disc: true value × the body-size visual aid. */
+  readonly sunAngularRadius: number;
   /** Moon body-fixed (three-axis convention, see axes.ts) → sky world. */
   readonly moonRotation: Mat3;
 }
 
 export interface SkyVisualAids {
   /** Visual aid only; 1 = true size. */
-  readonly moonSize: number;
+  readonly bodySize: number;
 }
 
 export function toSkyScene(
   state: SystemState,
   observer: Geodetic,
-  { moonSize }: SkyVisualAids,
+  { bodySize }: SkyVisualAids,
 ): SkyScene {
   const eqjToHor = eqjToHorizon(state.earthOrientation, observer);
   const eqjToSky = mul(Z_UP_TO_THREE, eqjToHor);
@@ -77,7 +79,8 @@ export function toSkyScene(
     lunarToSolar,
     moonlightOnGround: moonlightOnGround(lunarToSolar, moon.altitude),
     moon,
-    moonAngularRadius: Math.asin(MOON_RADIUS_KM / length(moonTopo)) * moonSize,
+    moonAngularRadius: Math.asin(MOON_RADIUS_KM / length(moonTopo)) * bodySize,
+    sunAngularRadius: Math.asin(SUN_RADIUS_KM / length(sunTopo)) * bodySize,
     moonRotation: mul(mul(eqjToSky, state.moonOrientation), transpose(Z_UP_TO_THREE)),
   };
 }

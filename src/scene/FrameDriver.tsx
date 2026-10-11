@@ -16,7 +16,7 @@ export function FrameDriver() {
     const state = computeSystemState(new Date(simMs));
     // Read settings imperatively: changing them must not re-render the canvas tree.
     const { location, visualScale } = useSimStore.getState();
-    const sky = toSkyScene(state, location, { moonSize: visualScale.moonSize });
+    const sky = toSkyScene(state, location, { bodySize: visualScale.bodySize });
     frameRef.current = {
       simMs,
       orbit: toOrbitScene(state, visualScale),

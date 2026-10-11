@@ -24,7 +24,7 @@ function reference(body: Body, ms: number) {
 
 describe('toSkyScene', () => {
   const state = computeSystemState(new Date(T));
-  const sky = toSkyScene(state, TROMSO, { moonSize: 1 });
+  const sky = toSkyScene(state, TROMSO, { bodySize: 1 });
 
   it('places Sun and Moon where astronomy-engine puts them (≤ 0.1°)', () => {
     for (const [body, dir] of [
@@ -56,7 +56,7 @@ describe('toSkyScene', () => {
     const deg = (sky.moonAngularRadius * 180) / Math.PI;
     expect(deg).toBeGreaterThan(0.24);
     expect(deg).toBeLessThan(0.29);
-    const scaled = toSkyScene(state, TROMSO, { moonSize: 4 });
+    const scaled = toSkyScene(state, TROMSO, { bodySize: 4 });
     expect(scaled.moonAngularRadius).toBeCloseTo(sky.moonAngularRadius * 4, 12);
     expect(scaled.moonDirection).toEqual(sky.moonDirection);
   });
@@ -71,7 +71,7 @@ describe('sampleDailyArcs', () => {
   });
 
   it('centre samples match the current Sun and Moon directions', () => {
-    const sky = toSkyScene(computeSystemState(new Date(T)), TROMSO, { moonSize: 1 });
+    const sky = toSkyScene(computeSystemState(new Date(T)), TROMSO, { bodySize: 1 });
     expect(angleBetweenDeg(arcs.sun[72] ?? vec(0, 0, 0), sky.sunDirection)).toBeLessThan(1e-4);
     expect(angleBetweenDeg(arcs.moon[72] ?? vec(0, 0, 0), sky.moonDirection)).toBeLessThan(1e-4);
   });

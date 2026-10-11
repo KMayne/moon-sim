@@ -181,6 +181,11 @@ export class DisplaySkyMaterial extends SkyMaterial {
     (this.uniforms.moonSimSunScale as Uniform<number>).value = value;
   }
 
+  /** Rendered Sun disc size (radians), including the body-size visual aid. */
+  setSunDiscRadius(radians: number): void {
+    this.sunAngularRadius = radians;
+  }
+
   setExposure(value: number): void {
     (this.uniforms.moonSimExposure as Uniform<number>).value = value;
   }

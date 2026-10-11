@@ -44,7 +44,7 @@ export function hudSnapshot(
     phase: moonPhaseInfo(new Date(simMs)),
     ageDays: caches.age.ageDays(simMs),
     riseSet: caches.riseSet.next(location, simMs),
-    moonAltitudeDeg: toSkyScene(computeSystemState(new Date(simMs)), location, { moonSize: 1 }).moon
+    moonAltitudeDeg: toSkyScene(computeSystemState(new Date(simMs)), location, { bodySize: 1 }).moon
       .altitude,
   };
 }

@@ -19,7 +19,7 @@ const DEG = 180 / Math.PI;
 
 function rendered(ms: number) {
   const state = computeSystemState(new Date(ms));
-  const disc = toDiscScene(state, toSkyScene(state, TROMSO, { moonSize: 1 }));
+  const disc = toDiscScene(state, toSkyScene(state, TROMSO, { bodySize: 1 }));
   const camera = new OrthographicCamera(-1.12, 1.12, 1.12, -1.12, 0.1, 20);
   const p = disc.cameraPosition;
   camera.position.set(p.x, p.y, p.z);
