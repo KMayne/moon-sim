@@ -145,6 +145,14 @@ body,
   padding: 24px;
 }
 
+/* Phones: the time controls dock in an implicit auto row under the views (see
+   Transport.module.css). Before the stacking rule below, which overrides the rows. */
+@media (max-width: 700px), (max-height: 500px) {
+  .views {
+    grid-template-rows: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .views {
     grid-template-columns: 1fr;

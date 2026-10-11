@@ -1,9 +1,18 @@
-import { ArrowLeftRight, ChevronsLeft, ChevronsRight, Pause, Play } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronUp,
+  Pause,
+  Play,
+} from 'lucide-react';
 import { useEffect } from 'react';
 import { SPEED_STEPS, speedLabel } from '../sim/playback';
 import { useSimStore } from '../state/store';
 import { SimTimePicker } from './SimTimePicker';
 import styles from './Transport.module.css';
+import { usePersistentFlag } from './usePersistentFlag';
 
 /** Keys are ignored while typing in a field (e.g. the "go to" date or coordinates). */
 function isTyping(target: EventTarget | null): boolean {
@@ -50,16 +59,23 @@ export function Transport() {
   const faster = useSimStore((s) => s.faster);
   const slower = useSimStore((s) => s.slower);
   const toggleReverse = useSimStore((s) => s.toggleReverse);
+  // Only honoured where the bar docks (phones); see Transport.module.css.
+  const [collapsed, setCollapsed] = usePersistentFlag('moon-sim:panel:transport-collapsed', false);
   useTransportKeys();
 
   const atSlowest = playback.step <= 0;
   const atFastest = playback.step >= SPEED_STEPS.length - 1;
 
   return (
-    <div className={styles.transport} role="group" aria-label="Time controls">
+    <div
+      className={styles.transport}
+      role="group"
+      aria-label="Time controls"
+      data-collapsed={collapsed}
+    >
       <button
         type="button"
-        className={styles.button}
+        className={`${styles.button} ${styles.extra}`}
         aria-pressed={playback.reverse}
         onClick={toggleReverse}
         title="Reverse (R)"
@@ -69,7 +85,7 @@ export function Transport() {
       </button>
       <button
         type="button"
-        className={styles.button}
+        className={`${styles.button} ${styles.extra}`}
         onClick={slower}
         disabled={atSlowest}
         title="Slower ([)"
@@ -92,7 +108,7 @@ export function Transport() {
       </button>
       <button
         type="button"
-        className={styles.button}
+        className={`${styles.button} ${styles.extra}`}
         onClick={faster}
         disabled={atFastest}
         title="Faster (])"
@@ -103,7 +119,21 @@ export function Transport() {
       <span className={styles.speed} aria-live="polite">
         {playback.playing ? speedLabel(playback) : `Paused · ${speedLabel(playback)}`}
       </span>
-      <div className={styles.time}>
+      <button
+        type="button"
+        className={`${styles.button} ${styles.collapse}`}
+        aria-expanded={!collapsed}
+        onClick={() => {
+          setCollapsed(!collapsed);
+        }}
+        title={collapsed ? 'Show all time controls' : 'Hide time controls'}
+      >
+        {collapsed ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}
+        <span className={styles.srOnly}>
+          {collapsed ? 'More time controls' : 'Fewer time controls'}
+        </span>
+      </button>
+      <div className={`${styles.time} ${styles.extra}`}>
         <SimTimePicker />
       </div>
     </div>

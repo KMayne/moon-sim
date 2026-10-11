@@ -11,6 +11,9 @@
   padding: 6px 8px;
   flex-wrap: wrap;
   justify-content: center;
+  /* An absolute box shrink-wraps to the space right of `left` (half the pane), which wrapped it
+     early; size it to its content and let max-width do the clamping instead. */
+  width: max-content;
   max-width: calc(100% - 32px);
   background: rgb(11 13 20 / 85%);
   border: 1px solid #1b2030;
@@ -24,17 +27,6 @@
   gap: 4px;
   padding-left: 8px;
   border-left: 1px solid #1b2030;
-}
-
-/* Narrow views: time on its own row under the playback buttons. */
-@media (max-width: 560px) {
-  .time {
-    flex-basis: 100%;
-    justify-content: center;
-    padding: 4px 0 0;
-    border-left: none;
-    border-top: 1px solid #1b2030;
-  }
 }
 
 .button {
@@ -91,6 +83,11 @@
   white-space: nowrap;
 }
 
+/* The collapse toggle only exists where the bar docks. */
+.collapse {
+  display: none;
+}
+
 .srOnly {
   position: absolute;
   width: 1px;
@@ -98,4 +95,77 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* Phones: docked as its own strip under the views rather than floating over them, since the
+   views are too short there to give up any of their height to an overlay. */
+@media (max-width: 700px), (max-height: 500px) {
+  .transport {
+    /* Relative, not static, so z-index keeps it above the shared canvas. */
+    position: relative;
+    left: auto;
+    bottom: auto;
+    grid-column: 1 / -1;
+    width: auto;
+    max-width: none;
+    transform: none;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: none;
+  }
+
+  .collapse {
+    display: grid;
+  }
+
+  /* Collapsed: just play/pause, the speed and the toggle, on one short row. */
+  .transport[data-collapsed='true'] {
+    display: flex;
+  }
+
+  .transport[data-collapsed='true'] .extra {
+    display: none;
+  }
+}
+
+/* Small screens: smaller buttons and type. */
+@media (max-width: 560px), (max-height: 500px) {
+  .transport {
+    gap: 2px;
+    padding: 4px 6px;
+  }
+
+  .button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .play {
+    width: 36px;
+    height: 36px;
+  }
+
+  .speed {
+    min-width: 8.5em;
+    font-size: 12px;
+  }
+}
+
+/* Narrow views: the time on its own row under the playback buttons. A grid, not a wrapping flex
+   row, so the rows line up centred. */
+@media (max-width: 560px) {
+  .transport {
+    display: grid;
+    grid-template-columns: repeat(6, auto);
+    justify-content: center;
+    justify-items: center;
+  }
+
+  .time {
+    grid-column: 1 / -1;
+    justify-content: center;
+    padding: 2px 0 0;
+    border-left: none;
+    border-top: 1px solid #1b2030;
+  }
 }
