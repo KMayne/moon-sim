@@ -164,3 +164,64 @@
     font-size: 11px;
   }
 }
+
+/* Phones, where the time controls dock under the views and the disc is small: shorten the
+   below-horizon note. Inset in the sky view, also drop the caption (the sidebar already says where
+   it's seen from) and truncate the header. */
+@media (max-width: 700px), (max-height: 500px) {
+  .below {
+    margin-top: 30%;
+  }
+
+  .belowMore {
+    display: none;
+  }
+
+  .panel:not(.row) .header {
+    overflow: hidden;
+  }
+
+  .panel:not(.row) .phase {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .panel:not(.row) .caption {
+    display: none;
+  }
+}
+
+/* Portrait phones: a full-width row under the views, with the disc centred below its header. */
+.row {
+  position: relative;
+  grid-column: 1 / -1;
+  width: auto;
+  background: #0b0d14;
+}
+
+.row .header {
+  border: none;
+  border-radius: 0;
+}
+
+.row .title {
+  display: inline;
+}
+
+.row .phase {
+  margin-left: auto;
+}
+
+.row .body {
+  margin: 0 auto;
+}
+
+.row .caption {
+  /* One line, centred under the disc even when it's wider than the disc. */
+  position: relative;
+  left: 50%;
+  width: max-content;
+  transform: translateX(-50%);
+  background: none;
+  border-left: none;
+}

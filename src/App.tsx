@@ -12,10 +12,12 @@ import { Controls } from './ui/Controls';
 import { OrbitFocusToggle } from './ui/OrbitFocusToggle';
 import { EclipsesSection } from './ui/controls/EclipsesSection';
 import { Hud } from './ui/Hud';
+import { PORTRAIT_PHONE_QUERY, useMediaMatch } from './ui/layout';
 import { MoonDiscPanel } from './ui/MoonDiscPanel';
 import { TimeReadout } from './ui/TimeReadout';
 import { Transport } from './ui/Transport';
 import { useHudSnapshot } from './ui/useHudSnapshot';
+import { usePersistentFlag } from './ui/usePersistentFlag';
 
 /** lucide-react has no brand icons; this is the Material Design Icons GitHub mark, as clipbox uses. */
 function GitHubIcon({ size }: { size: number }) {
@@ -45,9 +47,15 @@ export function App() {
   useFreezeWhenHidden();
   useUrlSync();
   const snap = useHudSnapshot();
+  const discInRow = useMediaMatch(PORTRAIT_PHONE_QUERY);
+  // Only honoured on phones, where the time controls carry the toggle; see index.css.
+  const [settingsHidden, setSettingsHidden] = usePersistentFlag(
+    'moon-sim:panel:settings-hidden',
+    false,
+  );
 
   return (
-    <div className="app" ref={app}>
+    <div className="app" ref={app} data-settings-hidden={settingsHidden || undefined}>
       {/* One canvas over the whole app: every view (orbit, sky, Moon disc) renders in it. */}
       <ErrorBoundary fallback={<p className="fallback">The 3D view failed to start.</p>}>
         <SimulationCanvas eventSource={app} />
@@ -59,12 +67,18 @@ export function App() {
         </div>
         <div className="view-cell">
           <SkyView className="view view--sky" />
-          <MoonDiscPanel snap={snap} />
+          {!discInRow && <MoonDiscPanel snap={snap} />}
         </div>
+        {discInRow && <MoonDiscPanel snap={snap} row />}
         <TimeReadout />
-        <Transport />
+        <Transport
+          settingsHidden={settingsHidden}
+          onToggleSettings={() => {
+            setSettingsHidden(!settingsHidden);
+          }}
+        />
       </main>
-      <aside className="sidebar">
+      <aside id="settings" className="sidebar">
         <div className="sidebar__scroll">
           <Hud snap={snap} />
           {ECLIPSES_ENABLED && (

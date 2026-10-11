@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { DiscView } from '../scene/disc/DiscView';
 import sectionClasses from './controls/Section.module.css';
-import { clampDiscSize, DISC_SIZE, dragDiscSize } from './discSize';
+import { clampDiscSize, DISC_SIZE, dragDiscSize, rowDiscSize } from './discSize';
 import { formatPercent } from './format';
 import type { HudSnapshot } from './hudModel';
 import styles from './MoonDiscPanel.module.css';
@@ -34,8 +34,11 @@ function storeSize(size: number): void {
  *
  * While open it publishes its width as `--moon-disc-width` on the views container so the transport
  * bar can centre itself in the remaining space.
+ *
+ * With `row`, it is instead its own full-width row under the views (portrait phones, where the sky
+ * view is too short to inset it), sized from the views' height rather than dragged.
  */
-export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
+export function MoonDiscPanel({ snap, row = false }: { snap: HudSnapshot; row?: boolean }) {
   const [open, setOpen] = usePersistentFlag('moon-sim:panel:moon-disc', false);
   const [requested, setRequested] = useState(readStoredSize);
   const [host, setHost] = useState({ width: 0, height: 0 });
@@ -43,7 +46,7 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
   const drag = useRef<{ x: number; size: number } | null>(null);
   const bodyId = useId();
 
-  // Track the host view's size so the disc always fits.
+  // Track the host's size (the sky view, or the whole views area for a row) so the disc always fits.
   useEffect(() => {
     const view = panel.current?.parentElement;
     if (!view) return;
@@ -56,16 +59,20 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
     };
   }, []);
 
-  const size = host.width > 0 ? clampDiscSize(requested, host.width, host.height) : requested;
+  const size = row
+    ? rowDiscSize(host.height)
+    : host.width > 0
+      ? clampDiscSize(requested, host.width, host.height)
+      : requested;
 
   useEffect(() => {
     const views = panel.current?.closest<HTMLElement>('.views');
-    if (!views) return;
+    if (!views || row) return;
     views.style.setProperty('--moon-disc-width', open ? `${size}px` : '0px');
     return () => {
       views.style.removeProperty('--moon-disc-width');
     };
-  }, [open, size]);
+  }, [open, size, row]);
 
   const commit = (next: number) => {
     setRequested(next);
@@ -98,12 +105,12 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
   return (
     <section
       ref={panel}
-      className={styles.panel}
+      className={`${styles.panel ?? ''} ${row ? (styles.row ?? '') : ''}`}
       data-open={open || undefined}
-      style={open ? ({ width: `${size}px` } satisfies CSSProperties) : undefined}
+      style={open && !row ? ({ width: `${size}px` } satisfies CSSProperties) : undefined}
       aria-label="Moon as seen from the observer"
     >
-      {open && (
+      {open && !row && (
         <button
           type="button"
           className={styles.grip}
@@ -140,7 +147,11 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
         <span className={styles.phase}>{phase}</span>
       </button>
       {open && (
-        <div id={bodyId} className={styles.body}>
+        <div
+          id={bodyId}
+          className={styles.body}
+          style={row ? ({ width: `${size}px` } satisfies CSSProperties) : undefined}
+        >
           <DiscView className={styles.disc ?? ''} />
           {/* Below the horizon the disc is shown dimmed: you couldn't see it from here. */}
           {below && <div className={styles.dim} aria-hidden />}
@@ -149,7 +160,9 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
               ↑ zenith
             </span>
             {below && (
-              <span className={styles.below}>Below horizon — shown as it would appear</span>
+              <span className={styles.below}>
+                Below horizon<span className={styles.belowMore}> — shown as it would appear</span>
+              </span>
             )}
           </div>
           <p className={styles.caption}>as seen from {snap.location.label}, magnified</p>

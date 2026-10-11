@@ -83,8 +83,8 @@
   white-space: nowrap;
 }
 
-/* The collapse toggle only exists where the bar docks. */
-.collapse {
+/* The settings toggle only exists where the bar docks. */
+.phoneOnly {
   display: none;
 }
 
@@ -114,17 +114,8 @@
     backdrop-filter: none;
   }
 
-  .collapse {
+  .phoneOnly {
     display: grid;
-  }
-
-  /* Collapsed: just play/pause, the speed and the toggle, on one short row. */
-  .transport[data-collapsed='true'] {
-    display: flex;
-  }
-
-  .transport[data-collapsed='true'] .extra {
-    display: none;
   }
 }
 

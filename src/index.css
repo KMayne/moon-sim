@@ -123,14 +123,69 @@ body,
 
 .scale-badge {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: flex-start;
+  gap: 4px;
   margin-top: 8px;
-  padding: 6px 8px;
+  padding: 6px 4px 6px 8px;
   font-size: 12px;
   color: #1a1200;
   background: #ffcf66;
   border-radius: 4px;
+}
+
+.scale-badge__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scale-badge__dismiss {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  /* The readout around it lets pointer events through to the view. */
+  pointer-events: auto;
+}
+
+.scale-badge__dismiss:hover,
+.scale-badge__dismiss:focus-visible {
+  background: rgb(0 0 0 / 12%);
+}
+
+.scale-badge--short {
+  display: none;
+}
+
+/* Phones: one short line, so it doesn't cover the small orbit view. */
+@media (max-width: 700px), (max-height: 500px) {
+  .scale-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 4px;
+    padding: 0 0 0 6px;
+    font-size: 11px;
+  }
+
+  .scale-badge__text {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .scale-badge--long {
+    display: none;
+  }
+
+  .scale-badge--short {
+    display: inline;
+  }
 }
 
 .aurora-hint {
@@ -150,6 +205,15 @@ body,
 @media (max-width: 700px), (max-height: 500px) {
   .views {
     grid-template-rows: 1fr;
+  }
+
+  /* Settings hidden (toggled from the time controls): the views take the whole screen. */
+  .app[data-settings-hidden] {
+    grid-template-columns: 1fr;
+  }
+
+  .app[data-settings-hidden] .sidebar {
+    display: none;
   }
 }
 
