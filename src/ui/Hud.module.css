@@ -1,13 +1,47 @@
 .hud {
-  padding: 12px 14px 16px;
+  padding: 10px 14px 12px;
   border-top: 1px solid #1b2030;
   font-size: 12px;
 }
 
 .title {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 13px;
   font-weight: 600;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid #4d8dff;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.chevron {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid #8e96ad;
+  transition: transform 150ms ease;
+}
+
+.toggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
 }
 
 .where {
@@ -15,8 +49,30 @@
   color: #8e96ad;
 }
 
+.summary {
+  margin: 4px 0 0 13px;
+  color: #c9cee0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Height transition via grid rows: cheap, no measuring, and nothing above moves. */
+.details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 180ms ease;
+}
+
+.details[data-expanded='true'] {
+  grid-template-rows: 1fr;
+}
+
+.detailsInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .rows {
-  margin: 0;
+  margin: 8px 0 0;
 }
 
 .row {
@@ -40,4 +96,11 @@
   margin: 8px 0 0;
   font-size: 11px;
   color: #6b7390;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details,
+  .chevron {
+    transition: none;
+  }
 }
