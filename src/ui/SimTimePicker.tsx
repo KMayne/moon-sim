@@ -1,20 +1,19 @@
-import { Button, Group } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MAX_SIM_TIME, MIN_SIM_TIME } from '../../sim/clock';
-import { useSimStore } from '../../state/store';
-import { zoneFor } from '../format';
-import { fromZonedString, toZonedString } from '../zonedTime';
-import { Section } from './Section';
+import { MAX_SIM_TIME, MIN_SIM_TIME } from '../sim/clock';
+import { useSimStore } from '../state/store';
+import { zoneFor } from './format';
+import { fromZonedString, toZonedString } from './zonedTime';
 
 /** How often the closed picker refreshes to follow the running clock. */
 const REFRESH_MS = 1000;
 
 /**
  * Jump to a date and time, picked in the observer's local time zone (where "22:00 in Tromsø"
- * means what you'd expect). Play/pause and speed live in the transport bar.
+ * means what you'd expect). Lives in the transport bar beside play/pause and speed.
  */
-export function TimeSection() {
+export function SimTimePicker() {
   const clock = useSimStore((s) => s.clock);
   const setTime = useSimStore((s) => s.setTime);
   const location = useSimStore((s) => s.location);
@@ -35,15 +34,19 @@ export function TimeSection() {
   }, [clock, zone]);
 
   return (
-    <Section title="Time">
+    <>
       <DateTimePicker
-        label="Date & time"
-        description={`Observer's local time (${zone})`}
+        aria-label={`Date and time, observer's local time (${zone})`}
+        title={`Observer's local time (${zone})`}
+        size="sm"
+        variant="filled"
+        w={168}
         value={value}
         valueFormat="D MMM YYYY, HH:mm"
         minDate={toZonedString(MIN_SIM_TIME, zone)}
         maxDate={toZonedString(MAX_SIM_TIME, zone)}
         popoverProps={{
+          position: 'top',
           onOpen: () => {
             open.current = true;
           },
@@ -59,17 +62,16 @@ export function TimeSection() {
           setTime(new Date(ms));
         }}
       />
-      <Group justify="flex-end">
-        <Button
-          variant="light"
-          size="xs"
-          onClick={() => {
-            setTime(new Date());
-          }}
-        >
-          Now
-        </Button>
-      </Group>
-    </Section>
+      <Button
+        variant="subtle"
+        size="compact-sm"
+        onClick={() => {
+          setTime(new Date());
+        }}
+        title="Jump to the current real time"
+      >
+        Now
+      </Button>
+    </>
   );
 }

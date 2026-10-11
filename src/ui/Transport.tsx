@@ -2,6 +2,7 @@ import { ArrowLeftRight, ChevronsLeft, ChevronsRight, Pause, Play } from 'lucide
 import { useEffect } from 'react';
 import { SPEED_STEPS, speedLabel } from '../sim/playback';
 import { useSimStore } from '../state/store';
+import { SimTimePicker } from './SimTimePicker';
 import styles from './Transport.module.css';
 
 /** Keys are ignored while typing in a field (e.g. the "go to" date or coordinates). */
@@ -42,7 +43,7 @@ function useTransportKeys() {
   }, []);
 }
 
-/** Play/pause, direction and speed: the only controls that drive the sim clock's rate. */
+/** Sim time, play/pause, direction and speed: everything that drives the sim clock. */
 export function Transport() {
   const playback = useSimStore((s) => s.playback);
   const togglePlaying = useSimStore((s) => s.togglePlaying);
@@ -102,6 +103,9 @@ export function Transport() {
       <span className={styles.speed} aria-live="polite">
         {playback.playing ? speedLabel(playback) : `Paused · ${speedLabel(playback)}`}
       </span>
+      <div className={styles.time}>
+        <SimTimePicker />
+      </div>
     </div>
   );
 }
