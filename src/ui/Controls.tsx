@@ -133,6 +133,15 @@ export function Controls() {
     setVisualScale({ moonSize: aids.moonSize, moonDistance: aids.moonDistance });
   }, [aids.moonSize, aids.moonDistance, setVisualScale]);
 
+  const setAuroraEnabled = useSimStore((s) => s.setAuroraEnabled);
+  const flair = useControls('Flair — not simulated', {
+    aurora: { label: 'aurora (cosmetic)', value: false },
+  });
+
+  useEffect(() => {
+    setAuroraEnabled(flair.aurora);
+  }, [flair.aurora, setAuroraEnabled]);
+
   // The clock can stop itself at the edge of its range; reflect that in the panel.
   useEffect(() => {
     if (storeSpeed === 0) setTimePanel({ speed: 0 });
