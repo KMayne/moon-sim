@@ -69,6 +69,9 @@ body,
 }
 
 .sidebar__credit {
+  display: flex;
+  align-items: center;
+  gap: 3px;
   padding: 8px 12px;
   font-size: 12px;
   color: #6b7390;
@@ -149,4 +152,13 @@ body,
     border-left: none;
     border-top: 1px solid #1b2030;
   }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

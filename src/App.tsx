@@ -1,4 +1,5 @@
 import { Divider } from '@mantine/core';
+import { ArrowUpRight } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { OrbitView } from './scene/orbit/OrbitView';
@@ -61,8 +62,15 @@ export function App() {
           <Divider />
           <Controls />
         </div>
-        <a className="sidebar__credit" href="https://kianmayne.co.uk/">
+        <a
+          className="sidebar__credit"
+          href="https://kianmayne.co.uk/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           KianMayne.co.uk
+          <ArrowUpRight size={12} aria-hidden />
+          <span className="visually-hidden"> (opens in a new tab)</span>
         </a>
       </aside>
     </div>
