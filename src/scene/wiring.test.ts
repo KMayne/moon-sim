@@ -2,6 +2,7 @@ import { Group, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import { computeSystemState } from '../astro/ephemeris';
 import { toOrbitScene } from '../sim/orbitScene';
+import { TRUE_SCALE, type VisualScale } from '../sim/visualScale';
 import { applyTransform } from './applyTransform';
 import { GREENWICH_POINT, NEAR_SIDE_POINT } from './bodyLocal';
 
@@ -14,8 +15,8 @@ import { GREENWICH_POINT, NEAR_SIDE_POINT } from './bodyLocal';
 const HOUR_MS = 3_600_000;
 const DEG = 180 / Math.PI;
 
-function placed(ms: number) {
-  const orbit = toOrbitScene(computeSystemState(new Date(ms)));
+function placed(ms: number, scale: VisualScale = TRUE_SCALE) {
+  const orbit = toOrbitScene(computeSystemState(new Date(ms)), scale);
   const earth = new Group();
   const moon = new Group();
   applyTransform(earth, orbit.earth);
@@ -62,5 +63,24 @@ describe('rendered scene graph', () => {
     expect(pole.angleTo(new Vector3(0, 1, 0)) * DEG).toBeCloseTo(23.44, 1);
     // June solstice: northern hemisphere tilted toward the Sun.
     expect(pole.x).toBeGreaterThan(0);
+  });
+  for (const scale of [
+    { moonSize: 1, moonDistance: 0.05 },
+    { moonSize: 25, moonDistance: 0.05 },
+  ] satisfies VisualScale[]) {
+    it(`near-side marker faces Earth with visual aids ${JSON.stringify(scale)}`, () => {
+      const start = Date.UTC(2026, 3, 1);
+      for (let t = start; t < start + 30 * 24 * HOUR_MS; t += 6 * HOUR_MS) {
+        const { earth, moon } = placed(t, scale);
+        const towardEarth = earth.position.clone().sub(moon.position).normalize();
+        expect(outward(moon, NEAR_SIDE_POINT).angleTo(towardEarth) * DEG).toBeLessThan(11);
+      }
+    });
+  }
+
+  it('scaled Moon marker sits on the scaled surface', () => {
+    const { moon } = placed(Date.UTC(2026, 3, 1), { moonSize: 25, moonDistance: 1 });
+    const markerWorld = moon.localToWorld(NEAR_SIDE_POINT.clone());
+    expect(markerWorld.distanceTo(moon.position)).toBeCloseTo(0.2724 * 25, 2);
   });
 });

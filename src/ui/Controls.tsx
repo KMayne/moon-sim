@@ -1,7 +1,20 @@
 import { button, Leva, useControls } from 'leva';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { MOON_SIZE_RANGE, TRUE_SCALE } from '../sim/visualScale';
 import { DEFAULT_SPEED, useSimStore } from '../state/store';
 import { SPEED_PRESETS } from './speeds';
+
+/**
+ * Log-spaced distance options: a linear 0.05–1 slider would spend 95% of its travel on the
+ * uninteresting end. 1× is true scale.
+ */
+const MOON_DISTANCE_OPTIONS = {
+  '1× (true)': 1,
+  '0.5×': 0.5,
+  '0.25×': 0.25,
+  '0.1×': 0.1,
+  '0.05×': 0.05,
+} as const satisfies Record<string, number>;
 
 /** Parses "YYYY-MM-DD" or "YYYY-MM-DD HH:mm" as UTC. */
 function parseUtc(text: string): Date | null {
@@ -39,6 +52,37 @@ export function Controls() {
     if (date) setTime(date);
   }, [time.goTo, setTime]);
 
+  const setVisualScale = useSimStore((s) => s.setVisualScale);
+  // The panel's setter only exists after useControls returns, so the button reaches it via a ref.
+  const resetAids = useRef<(() => void) | null>(null);
+  const [aids, setAidsPanel] = useControls('Visual aids — NOT true scale', () => ({
+    moonSize: {
+      label: 'moon size ×',
+      value: TRUE_SCALE.moonSize,
+      min: MOON_SIZE_RANGE.min,
+      max: MOON_SIZE_RANGE.max,
+      step: 0.5,
+    },
+    moonDistance: {
+      label: 'moon distance ×',
+      value: TRUE_SCALE.moonDistance,
+      options: MOON_DISTANCE_OPTIONS,
+    },
+    'reset to true scale': button(() => {
+      resetAids.current?.();
+    }),
+  }));
+
+  useEffect(() => {
+    resetAids.current = () => {
+      setAidsPanel({ ...TRUE_SCALE });
+    };
+  }, [setAidsPanel]);
+
+  useEffect(() => {
+    setVisualScale({ moonSize: aids.moonSize, moonDistance: aids.moonDistance });
+  }, [aids.moonSize, aids.moonDistance, setVisualScale]);
+
   // The clock can stop itself at the edge of its range; reflect that in the panel.
   useEffect(() => {
     if (storeSpeed === 0) setPanel({ speed: 0 });
@@ -52,7 +96,7 @@ export function Controls() {
       hideCopyButton
       theme={{
         colors: { elevation1: '#0b0d14', elevation2: '#11141d', elevation3: '#1b2030' },
-        sizes: { rootWidth: '100%', controlWidth: '60%' },
+        sizes: { rootWidth: '100%', controlWidth: '55%' },
         fontSizes: { root: '12px' },
       }}
     />
