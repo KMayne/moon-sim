@@ -1,4 +1,5 @@
 import { MAX_SIM_TIME, MIN_SIM_TIME } from '../sim/clock';
+import { playbackFromSpeed, playbackSpeed, type Playback } from '../sim/playback';
 import {
   customLocation,
   LOCATION_PRESETS,
@@ -10,8 +11,7 @@ import {
 export interface UrlState {
   location?: ObserverLocation;
   timeMs?: number;
-  /** Sim seconds per wall second; negative runs backwards. */
-  speed?: number;
+  playback?: Playback;
 }
 
 const isPresetId = (id: string): id is LocationPresetId => id in LOCATION_PRESETS;
@@ -23,10 +23,10 @@ function parseNumber(text: string | null): number | undefined {
 }
 
 /**
- * Reads `?loc=tromso` or `?lat=..&lon=..`, `t=<ISO 8601>`, `speed=<signed number>`.
- * `allowedSpeeds` are the magnitudes the UI can represent; anything else is ignored.
+ * Reads `?loc=tromso` or `?lat=..&lon=..`, `t=<ISO 8601>`, `speed=<signed step speed>` and
+ * `paused=1`. Speeds must be one of the playback steps; `speed=0` (older links) means paused.
  */
-export function parseUrlState(search: string, allowedSpeeds: readonly number[]): UrlState {
+export function parseUrlState(search: string): UrlState {
   const params = new URLSearchParams(search);
   const state: UrlState = {};
 
@@ -46,7 +46,10 @@ export function parseUrlState(search: string, allowedSpeeds: readonly number[]):
   }
 
   const speed = parseNumber(params.get('speed'));
-  if (speed !== undefined && allowedSpeeds.includes(Math.abs(speed))) state.speed = speed;
+  const playback = speed === undefined ? null : playbackFromSpeed(speed);
+  if (playback) {
+    state.playback = params.get('paused') === '1' ? { ...playback, playing: false } : playback;
+  }
 
   return state;
 }
@@ -56,7 +59,7 @@ const toIsoMinute = (ms: number): string => `${new Date(ms).toISOString().slice(
 
 const round = (n: number): string => String(Math.round(n * 1e4) / 1e4);
 
-export function serializeUrlState({ location, timeMs, speed }: Required<UrlState>): string {
+export function serializeUrlState({ location, timeMs, playback }: Required<UrlState>): string {
   const params = new URLSearchParams();
   if (location.id === 'custom') {
     params.set('lat', round(location.latitude));
@@ -65,6 +68,8 @@ export function serializeUrlState({ location, timeMs, speed }: Required<UrlState
     params.set('loc', location.id);
   }
   params.set('t', toIsoMinute(timeMs));
-  params.set('speed', String(speed));
+  // The step's speed even while paused, so play resumes at the same speed.
+  params.set('speed', String(playbackSpeed({ ...playback, playing: true })));
+  if (!playback.playing) params.set('paused', '1');
   return `?${params.toString()}`;
 }

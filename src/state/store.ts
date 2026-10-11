@@ -1,20 +1,30 @@
 import { create } from 'zustand';
 import { SimClock } from '../sim/clock';
 import type { AuroraStatus } from '../sim/auroraVisibility';
+import {
+  DEFAULT_PLAYBACK,
+  faster,
+  playbackSpeed,
+  slower,
+  togglePlaying,
+  toggleReverse,
+  type Playback,
+} from '../sim/playback';
 import { TRUE_SCALE, type VisualScale } from '../sim/visualScale';
-import { SPEED_PRESETS } from '../ui/speeds';
 import { DEFAULT_LOCATION, type ObserverLocation } from './locations';
 import { parseUrlState } from './urlState';
-
-/** Sim seconds per wall second. */
-export const DEFAULT_SPEED = 3600;
 
 interface SimStore {
   /** The single sim clock. Read imperatively (`clock.nowMs()`) in the frame loop, never via React. */
   readonly clock: SimClock;
-  /** Mirrors `clock.speed` for React consumers. */
+  /** Play/pause, direction and speed step; the clock's speed is always derived from this. */
+  playback: Playback;
+  /** Signed sim seconds per wall second actually applied to the clock (0 while paused). */
   speed: number;
-  setSpeed: (speed: number) => void;
+  togglePlaying: () => void;
+  faster: () => void;
+  slower: () => void;
+  toggleReverse: () => void;
   setTime: (time: Date) => void;
   /** Observer for the sky view, HUD rise/set times and local time. */
   location: ObserverLocation;
@@ -33,27 +43,39 @@ interface SimStore {
 export { TRUE_SCALE, type VisualScale };
 
 /** Anything a shared link pins down (location, time, speed) overrides the defaults. */
-const fromUrl =
-  typeof window === 'undefined'
-    ? {}
-    : parseUrlState(window.location.search, Object.values(SPEED_PRESETS));
-const initialSpeed = fromUrl.speed ?? DEFAULT_SPEED;
+const fromUrl = typeof window === 'undefined' ? {} : parseUrlState(window.location.search);
+const initialPlayback = fromUrl.playback ?? DEFAULT_PLAYBACK;
 
-export const useSimStore = create<SimStore>()((set) => {
+export const useSimStore = create<SimStore>()((set, get) => {
   const clock = new SimClock({
     start: fromUrl.timeMs === undefined ? new Date() : new Date(fromUrl.timeMs),
-    speed: initialSpeed,
-    // The clock stops itself at the edge of the supported range; keep the UI in step.
+    speed: playbackSpeed(initialPlayback),
+    // The clock stops itself at the edge of the supported range: show that as paused.
     onClamp: () => {
-      set({ speed: 0 });
+      set((s) => ({ playback: { ...s.playback, playing: false }, speed: 0 }));
     },
   });
+  const update = (change: (p: Playback) => Playback) => {
+    const playback = change(get().playback);
+    const speed = playbackSpeed(playback);
+    clock.setSpeed(speed);
+    set({ playback, speed });
+  };
   return {
     clock,
-    speed: initialSpeed,
-    setSpeed: (speed) => {
-      clock.setSpeed(speed);
-      set({ speed });
+    playback: initialPlayback,
+    speed: playbackSpeed(initialPlayback),
+    togglePlaying: () => {
+      update(togglePlaying);
+    },
+    faster: () => {
+      update(faster);
+    },
+    slower: () => {
+      update(slower);
+    },
+    toggleReverse: () => {
+      update(toggleReverse);
     },
     setTime: (time) => {
       clock.setTime(time);

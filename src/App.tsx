@@ -10,6 +10,7 @@ import { Controls } from './ui/Controls';
 import { Hud } from './ui/Hud';
 import { MoonDiscPanel } from './ui/MoonDiscPanel';
 import { TimeReadout } from './ui/TimeReadout';
+import { Transport } from './ui/Transport';
 import { useHudSnapshot } from './ui/useHudSnapshot';
 
 /** Hidden tabs don't advance sim time, so returning to a tab never lands years later. */
@@ -42,6 +43,7 @@ export function App() {
         <OrbitView className="view view--orbit" />
         <SkyView className="view view--sky" />
         <TimeReadout />
+        <Transport />
       </main>
       <aside className="sidebar">
         <MoonDiscPanel snap={snap} />

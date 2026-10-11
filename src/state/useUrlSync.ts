@@ -12,8 +12,8 @@ export function useUrlSync(): void {
   useEffect(() => {
     let last = '';
     const sync = () => {
-      const { clock, speed, location } = useSimStore.getState();
-      const search = serializeUrlState({ location, timeMs: clock.nowMs(), speed });
+      const { clock, playback, location } = useSimStore.getState();
+      const search = serializeUrlState({ location, timeMs: clock.nowMs(), playback });
       if (search !== last) {
         last = search;
         window.history.replaceState(window.history.state, '', search);

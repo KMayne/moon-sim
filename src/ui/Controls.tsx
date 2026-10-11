@@ -8,7 +8,6 @@ import {
   type LocationChoice,
   type ObserverPanelValues,
 } from './observerPanel';
-import { SPEED_PRESETS } from './speeds';
 
 /**
  * Log-spaced distance options: a linear 0.05–1 slider would spend 95% of its travel on the
@@ -45,23 +44,16 @@ function toLocation(choice: LocationChoice, latitude: number, longitude: number)
  * stays the single source of truth; swapping the panel library means rewriting this file only.
  */
 export function Controls() {
-  const setSpeed = useSimStore((s) => s.setSpeed);
   const setTime = useSimStore((s) => s.setTime);
   const setLocation = useSimStore((s) => s.setLocation);
-  const storeSpeed = useSimStore((s) => s.speed);
 
-  const [time, setTimePanel] = useControls('Time', () => {
-    // Initial values come from the store, which may have been seeded from the URL.
-    const speed = useSimStore.getState().speed;
-    return {
-      speed: { label: 'speed', value: Math.abs(speed), options: SPEED_PRESETS },
-      reverse: { label: 'reverse', value: speed < 0 },
-      goTo: { label: 'go to (UTC)', value: '', placeholder: 'YYYY-MM-DD HH:mm' },
-      now: button(() => {
-        setTime(new Date());
-      }),
-    };
-  });
+  // Play/pause and speed live in the transport bar (ui/Transport.tsx).
+  const [time] = useControls('Time', () => ({
+    goTo: { label: 'go to (UTC)', value: '', placeholder: 'YYYY-MM-DD HH:mm' },
+    now: button(() => {
+      setTime(new Date());
+    }),
+  }));
 
   const [observer, setObserverPanel] = useControls('Observer', () => {
     const location = useSimStore.getState().location;
@@ -73,10 +65,6 @@ export function Controls() {
     };
   });
   const prevObserver = useRef<ObserverPanelValues>(observer);
-
-  useEffect(() => {
-    setSpeed(time.speed * (time.reverse ? -1 : 1));
-  }, [time.speed, time.reverse, setSpeed]);
 
   useEffect(() => {
     const date = parseUtc(time.goTo);
@@ -137,11 +125,6 @@ export function Controls() {
   useEffect(() => {
     setAuroraEnabled(flair.aurora);
   }, [flair.aurora, setAuroraEnabled]);
-
-  // The clock can stop itself at the edge of its range; reflect that in the panel.
-  useEffect(() => {
-    if (storeSpeed === 0) setTimePanel({ speed: 0 });
-  }, [storeSpeed, setTimePanel]);
 
   return (
     <Leva

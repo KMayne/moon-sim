@@ -2,41 +2,55 @@ import { describe, expect, it } from 'vitest';
 import { customLocation, LOCATION_PRESETS } from './locations';
 import { parseUrlState, serializeUrlState } from './urlState';
 
-const SPEEDS = [0, 1, 60, 3600, 86_400];
-
 describe('parseUrlState', () => {
   it('reads a preset, time and speed', () => {
-    expect(parseUrlState('?loc=paranal&t=2026-06-21T12:00Z&speed=-3600', SPEEDS)).toEqual({
+    expect(parseUrlState('?loc=paranal&t=2026-06-21T12:00Z&speed=-3600')).toEqual({
       location: LOCATION_PRESETS.paranal,
       timeMs: Date.UTC(2026, 5, 21, 12),
-      speed: -3600,
+      playback: { playing: true, reverse: true, step: 3 },
     });
   });
 
   it('reads a custom location, normalising it', () => {
-    expect(parseUrlState('?lat=51.5&lon=359.9', SPEEDS).location).toEqual(
-      customLocation(51.5, -0.1),
-    );
+    expect(parseUrlState('?lat=51.5&lon=359.9').location).toEqual(customLocation(51.5, -0.1));
   });
 
   it('ignores invalid or unsupported values field by field', () => {
-    expect(parseUrlState('?loc=atlantis&t=yesterday&speed=7', SPEEDS)).toEqual({});
-    expect(parseUrlState('?lat=95&lon=0', SPEEDS)).toEqual({});
-    expect(parseUrlState('?lat=10', SPEEDS)).toEqual({});
-    expect(parseUrlState('?t=1800-01-01T00:00Z', SPEEDS)).toEqual({});
-    expect(parseUrlState('?speed=', SPEEDS)).toEqual({});
+    expect(parseUrlState('?loc=atlantis&t=yesterday&speed=7')).toEqual({});
+    expect(parseUrlState('?lat=95&lon=0')).toEqual({});
+    expect(parseUrlState('?lat=10')).toEqual({});
+    expect(parseUrlState('?t=1800-01-01T00:00Z')).toEqual({});
+    expect(parseUrlState('?speed=')).toEqual({});
   });
 
   it('prefers a valid preset over lat/lon', () => {
-    expect(parseUrlState('?loc=tromso&lat=1&lon=2', SPEEDS).location).toBe(LOCATION_PRESETS.tromso);
+    expect(parseUrlState('?loc=tromso&lat=1&lon=2').location).toBe(LOCATION_PRESETS.tromso);
+  });
+});
+
+describe('playback in links', () => {
+  it('treats speed=0 from older links as paused at the default speed', () => {
+    expect(parseUrlState('?speed=0').playback).toMatchObject({ playing: false, step: 3 });
+  });
+
+  it('keeps the speed step while paused', () => {
+    expect(parseUrlState('?speed=86400&paused=1').playback).toEqual({
+      playing: false,
+      reverse: false,
+      step: 5,
+    });
   });
 });
 
 describe('serializeUrlState', () => {
   it('round-trips presets and custom locations', () => {
     for (const location of [LOCATION_PRESETS['mauna-kea'], customLocation(-33.8688, 151.2093)]) {
-      const state = { location, timeMs: Date.UTC(2026, 9, 11, 22, 30), speed: 60 };
-      expect(parseUrlState(serializeUrlState(state), SPEEDS)).toEqual(state);
+      const state = {
+        location,
+        timeMs: Date.UTC(2026, 9, 11, 22, 30),
+        playback: { playing: false, reverse: true, step: 1 },
+      };
+      expect(parseUrlState(serializeUrlState(state))).toEqual(state);
     }
   });
 
@@ -44,7 +58,7 @@ describe('serializeUrlState', () => {
     const search = serializeUrlState({
       location: LOCATION_PRESETS.tromso,
       timeMs: Date.UTC(2026, 0, 1, 0, 0, 59, 999),
-      speed: 1,
+      playback: { playing: true, reverse: false, step: 0 },
     });
     expect(search).toContain('t=2026-01-01T00%3A00Z');
   });
