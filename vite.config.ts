@@ -6,6 +6,9 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [react()],
+  // Agent worktrees live under .claude/; watching or dep-scanning them reloads the dev page.
+  server: { watch: { ignored: ['**/.claude/**'] } },
+  optimizeDeps: { entries: ['index.html'] },
   test: {
     include: ['src/**/*.test.ts'],
     environment: 'node',

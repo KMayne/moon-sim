@@ -1,13 +1,13 @@
 import { button, Leva, useControls } from 'leva';
 import { useEffect, useRef } from 'react';
 import { MOON_SIZE_RANGE, TRUE_SCALE } from '../sim/visualScale';
-import {
-  customLocation,
-  LOCATION_PRESETS,
-  type LocationPresetId,
-  type ObserverLocation,
-} from '../state/locations';
+import { customLocation, LOCATION_PRESETS, type ObserverLocation } from '../state/locations';
 import { useSimStore } from '../state/store';
+import {
+  reconcileObserverPanel,
+  type LocationChoice,
+  type ObserverPanelValues,
+} from './observerPanel';
 import { SPEED_PRESETS } from './speeds';
 
 /**
@@ -30,8 +30,6 @@ function parseUtc(text: string): Date | null {
   const ms = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
   return Number.isNaN(ms) ? null : new Date(ms);
 }
-
-type LocationChoice = LocationPresetId | 'custom';
 
 const LOCATION_OPTIONS: Record<string, LocationChoice> = {
   ...Object.fromEntries(Object.values(LOCATION_PRESETS).map((p) => [p.label, p.id])),
@@ -65,29 +63,16 @@ export function Controls() {
     };
   });
 
-  const [observer] = useControls('Observer', () => {
+  const [observer, setObserverPanel] = useControls('Observer', () => {
     const location = useSimStore.getState().location;
-    const isCustom = (get: (path: string) => unknown) => get('Observer.location') === 'custom';
+    // Always shown (conditional rows overlap the next folder in Leva); see observerPanel.ts.
     return {
       location: { label: 'location', value: location.id, options: LOCATION_OPTIONS },
-      latitude: {
-        label: 'latitude °N',
-        value: location.latitude,
-        min: -90,
-        max: 90,
-        step: 0.01,
-        render: isCustom,
-      },
-      longitude: {
-        label: 'longitude °E',
-        value: location.longitude,
-        min: -180,
-        max: 180,
-        step: 0.01,
-        render: isCustom,
-      },
+      latitude: { label: 'latitude °N', value: location.latitude, step: 0.01 },
+      longitude: { label: 'longitude °E', value: location.longitude, step: 0.01 },
     };
   });
+  const prevObserver = useRef<ObserverPanelValues>(observer);
 
   useEffect(() => {
     setSpeed(time.speed * (time.reverse ? -1 : 1));
@@ -99,8 +84,19 @@ export function Controls() {
   }, [time.goTo, setTime]);
 
   useEffect(() => {
-    setLocation(toLocation(observer.location, observer.latitude, observer.longitude));
-  }, [observer.location, observer.latitude, observer.longitude, setLocation]);
+    const next = {
+      location: observer.location,
+      latitude: observer.latitude,
+      longitude: observer.longitude,
+    };
+    const patch = reconcileObserverPanel(prevObserver.current, next);
+    prevObserver.current = { ...next, ...patch };
+    if (patch) {
+      setObserverPanel(patch);
+      return;
+    }
+    setLocation(toLocation(next.location, next.latitude, next.longitude));
+  }, [observer.location, observer.latitude, observer.longitude, setObserverPanel, setLocation]);
 
   const setVisualScale = useSimStore((s) => s.setVisualScale);
   // The panel's setter only exists after useControls returns, so the button reaches it via a ref.
