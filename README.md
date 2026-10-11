@@ -31,4 +31,9 @@ Layering is enforced by `no-restricted-imports` in `eslint.config.js`.
 
 ## Deployment
 
-Pushing to `main` deploys to GitHub Pages via `.github/workflows/deploy.yml`.
+Hosted at kianmayne.co.uk/moon-sim/ on DigitalOcean App Platform (the app spec lives in the
+kianmayne.co.uk repo). Production builds need the subpath:
+
+```sh
+BASE_PATH=/moon-sim/ npm run build
+```

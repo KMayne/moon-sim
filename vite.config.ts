@@ -2,7 +2,7 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// GitHub Pages serves from /<repo>/; the deploy workflow passes BASE_PATH.
+// Served from a subpath in production (kianmayne.co.uk/moon-sim/): the build sets BASE_PATH.
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [react()],
