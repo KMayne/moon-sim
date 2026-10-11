@@ -1,10 +1,13 @@
 import { useTexture } from '@react-three/drei';
 import { Suspense } from 'react';
-import { Quaternion, SRGBColorSpace, Vector3 } from 'three';
+import { Quaternion, SRGBColorSpace, Vector3, type Texture } from 'three';
 import { ErrorBoundary } from '../../ErrorBoundary';
 import type { OrbitScene } from '../../sim/orbitScene';
 import { GREENWICH_POINT, NEAR_SIDE_POINT } from '../bodyLocal';
+import type { EclipseUniforms } from '../eclipseShading';
+import { EclipseAwareStandardMaterial } from '../EclipseAwareStandardMaterial';
 import { TEXTURE_URLS } from '../textures';
+import { useEclipseUniforms } from '../useEclipseUniforms';
 import { OrbitBody } from './OrbitBody';
 
 const selectEarth = (o: OrbitScene) => o.earth;
@@ -50,13 +53,27 @@ function Graticule({ color }: { color: string }) {
 interface SurfaceProps {
   url: string;
   roughness: number;
+  /** Moon only: sunlight follows Earth's shadow. */
+  eclipse?: EclipseUniforms | undefined;
+}
+
+/** meshStandardMaterial, eclipse-aware when given eclipse uniforms. */
+function SurfaceMaterial({
+  eclipse,
+  ...props
+}: Omit<SurfaceProps, 'url'> & { map?: Texture; color?: string }) {
+  return eclipse ? (
+    <EclipseAwareStandardMaterial eclipse={eclipse} metalness={0} {...props} />
+  ) : (
+    <meshStandardMaterial metalness={0} {...props} />
+  );
 }
 
 /**
  * Equirectangular map on a unit sphere. three's SphereGeometry UVs put lon 0 at the local +x axis,
  * matching our body-frame convention (verified in textureMapping.test.ts).
  */
-function TexturedSurface({ url, roughness }: SurfaceProps) {
+function TexturedSurface({ url, roughness, eclipse }: SurfaceProps) {
   const map = useTexture(url, (t) => {
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = 8;
@@ -64,7 +81,7 @@ function TexturedSurface({ url, roughness }: SurfaceProps) {
   return (
     <mesh>
       <sphereGeometry args={[1, 96, 48]} />
-      <meshStandardMaterial map={map} roughness={roughness} metalness={0} />
+      <SurfaceMaterial map={map} roughness={roughness} eclipse={eclipse} />
     </mesh>
   );
 }
@@ -72,27 +89,28 @@ function TexturedSurface({ url, roughness }: SurfaceProps) {
 interface PlainProps {
   color: string;
   gridColor: string;
+  eclipse?: EclipseUniforms | undefined;
 }
 
 /** Plain sphere plus grid: shown while the texture loads, or instead of it if loading fails. */
-function PlainSurface({ color, gridColor }: PlainProps) {
+function PlainSurface({ color, gridColor, eclipse }: PlainProps) {
   return (
     <>
       <mesh>
         <sphereGeometry args={[1, 64, 32]} />
-        <meshStandardMaterial color={color} roughness={1} metalness={0} />
+        <SurfaceMaterial color={color} roughness={1} eclipse={eclipse} />
       </mesh>
       <Graticule color={gridColor} />
     </>
   );
 }
 
-function Surface({ url, roughness, ...plain }: SurfaceProps & PlainProps) {
-  const fallback = <PlainSurface {...plain} />;
+function Surface({ url, roughness, eclipse, ...plain }: SurfaceProps & PlainProps) {
+  const fallback = <PlainSurface {...plain} eclipse={eclipse} />;
   return (
     <ErrorBoundary fallback={fallback}>
       <Suspense fallback={fallback}>
-        <TexturedSurface url={url} roughness={roughness} />
+        <TexturedSurface url={url} roughness={roughness} eclipse={eclipse} />
       </Suspense>
     </ErrorBoundary>
   );
@@ -108,9 +126,17 @@ export function Earth() {
 }
 
 export function Moon() {
+  // Auto-exposed during eclipses, like a telescope camera, so the eclipsed Moon shows its colour.
+  const eclipse = useEclipseUniforms('orbit', 1);
   return (
     <OrbitBody select={selectMoon}>
-      <Surface url={TEXTURE_URLS.moon} roughness={1} color="#9a9a9a" gridColor="#dddddd" />
+      <Surface
+        url={TEXTURE_URLS.moon}
+        roughness={1}
+        color="#9a9a9a"
+        gridColor="#dddddd"
+        eclipse={eclipse}
+      />
       <SurfaceSpike at={NEAR_SIDE_POINT} length={0.6} color="#ff4d4d" />
     </OrbitBody>
   );

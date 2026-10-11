@@ -1,7 +1,17 @@
 import { createContext, useContext } from 'react';
 import type { DiscScene } from '../sim/discScene';
+import type { EclipseGeometry, LunarEclipseState } from '../sim/eclipse';
 import type { OrbitScene } from '../sim/orbitScene';
 import type { SkyScene } from '../sim/skyScene';
+
+/** Lunar-eclipse lighting inputs for this frame (see sim/eclipse.ts). */
+export interface EclipseFrame {
+  readonly state: LunarEclipseState;
+  /** Orbit view world axes (Sun-fixed scene). */
+  readonly orbit: EclipseGeometry;
+  /** Sky view and phase-disc world axes (observer's North-Up-East). */
+  readonly sky: EclipseGeometry;
+}
 
 /**
  * Everything derived from sim time for the current frame. Computed once per frame by
@@ -12,6 +22,7 @@ export interface Frame {
   orbit: OrbitScene;
   sky: SkyScene;
   disc: DiscScene;
+  eclipse: EclipseFrame;
 }
 
 /** Mutable holder: written in the frame loop, read in the frame loop. Never React state. */

@@ -1,5 +1,10 @@
 import { ShaderMaterial, Vector3, type Texture } from 'three';
 import type { Vec3 } from '../../astro/vec';
+import {
+  createEclipseUniforms,
+  ECLIPSE_FRAGMENT_UNIFORMS,
+  type EclipseUniforms,
+} from '../eclipseShading';
 
 /**
  * Earthshine display gain, relative to full sunlight on the disc.
@@ -29,6 +34,7 @@ const fragmentShader = /* glsl */ `
   uniform vec3 sunDirection;
   uniform vec3 viewDirection;
   uniform float earthshine;
+  ${ECLIPSE_FRAGMENT_UNIFORMS}
 
   varying vec2 vUv;
   varying vec3 vNormalWorld;
@@ -41,7 +47,8 @@ const fragmentShader = /* glsl */ `
     // darkening, which is why the full Moon looks like a flat disc.
     float mu0 = max(dot(n, sunDirection), 0.0);
     float mu = max(dot(n, viewDirection), 0.0);
-    float sunlight = 2.0 * mu0 / (mu0 + mu + 1e-4);
+    // × the sunlight that actually reaches each point (Earth's shadow and its red glow).
+    vec3 sunlight = 2.0 * mu0 / (mu0 + mu + 1e-4) * moonSimEclipseLightForNormal(n);
 
     // Earth sits in the viewing direction as seen from the Moon.
     float earthlight = earthshine * mu;
@@ -64,9 +71,13 @@ interface DiscUniforms {
 /** The magnified Moon: true lighting geometry, lunar reflectance, display-boosted earthshine. */
 export class DiscMoonMaterial extends ShaderMaterial {
   readonly #u: DiscUniforms;
+  /** Eclipse lighting (sky-view axes); update via updateEclipseUniforms. */
+  readonly eclipse: EclipseUniforms;
 
   constructor() {
+    const eclipse = createEclipseUniforms();
     const uniforms: DiscUniforms = {
+      ...eclipse,
       map: { value: null },
       hasMap: { value: false },
       sunDirection: { value: new Vector3(1, 0, 0) },
@@ -75,6 +86,7 @@ export class DiscMoonMaterial extends ShaderMaterial {
     };
     super({ vertexShader, fragmentShader, uniforms });
     this.#u = uniforms;
+    this.eclipse = eclipse;
   }
 
   setMap(map: Texture | null): void {

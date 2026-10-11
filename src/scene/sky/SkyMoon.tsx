@@ -3,19 +3,38 @@ import { useFrame } from '@react-three/fiber';
 import { Suspense, useRef } from 'react';
 import { AdditiveBlending, SRGBColorSpace, type Group } from 'three';
 import { applyRotation } from '../applyTransform';
+import type { EclipseUniforms } from '../eclipseShading';
+import { EclipseAwareStandardMaterial } from '../EclipseAwareStandardMaterial';
 import { PRIORITY, useFrameRef } from '../frame';
 import { TEXTURE_URLS } from '../textures';
+import { useEclipseUniforms } from '../useEclipseUniforms';
 import { SKY_RENDER_ORDER } from './renderOrder';
 
 /** Render distance of the Moon in the sky view. Arbitrary: only its angular size matters. */
 export const SKY_MOON_DISTANCE = 10_000;
 
-function MoonSurface() {
+function MoonSurface({ eclipse }: { eclipse: EclipseUniforms }) {
   const map = useTexture(TEXTURE_URLS.moon, (t) => {
     t.colorSpace = SRGBColorSpace;
   });
-  return <meshStandardMaterial map={map} roughness={1} metalness={0} blending={AdditiveBlending} />;
+  return (
+    <EclipseAwareStandardMaterial
+      eclipse={eclipse}
+      map={map}
+      roughness={1}
+      metalness={0}
+      blending={AdditiveBlending}
+    />
+  );
 }
+
+/**
+ * Display compression for the eclipsed Moon in the sky: keep a quarter of the true dimming (in
+ * magnitudes), like the dark-adapting eye — mid-totality shows a clearly visible copper disc at
+ * roughly a fifth of a full Moon's brightness rather than vanishing (this Moon is not tied to the
+ * sky's eye-adaptation exposure).
+ */
+const SKY_ECLIPSE_COMPRESSION = 0.75;
 
 /**
  * Our textured Moon on the observer's sky: true direction (with parallax), true angular size ×
@@ -28,6 +47,7 @@ function MoonSurface() {
  */
 export function SkyMoon() {
   const frameRef = useFrameRef();
+  const eclipse = useEclipseUniforms('sky', SKY_ECLIPSE_COMPRESSION);
   const group = useRef<Group>(null);
 
   useFrame(() => {
@@ -44,8 +64,16 @@ export function SkyMoon() {
     <group ref={group}>
       <mesh renderOrder={SKY_RENDER_ORDER.moon}>
         <sphereGeometry args={[1, 64, 32]} />
-        <Suspense fallback={<meshStandardMaterial color="#9a9a9a" blending={AdditiveBlending} />}>
-          <MoonSurface />
+        <Suspense
+          fallback={
+            <EclipseAwareStandardMaterial
+              eclipse={eclipse}
+              color="#9a9a9a"
+              blending={AdditiveBlending}
+            />
+          }
+        >
+          <MoonSurface eclipse={eclipse} />
         </Suspense>
       </mesh>
     </group>

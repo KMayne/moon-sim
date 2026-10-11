@@ -2,6 +2,7 @@ import { OrbitControls, PerspectiveCamera, View } from '@react-three/drei';
 import type { OrbitScene } from '../../sim/orbitScene';
 import { BodyMarker } from '../markers/BodyMarker';
 import { Earth, Moon } from './bodies';
+import { EarthShadow } from './EarthShadow';
 import { OpeningShot } from './OpeningShot';
 import { OrbitPath } from './OrbitPath';
 import { Sun } from './Sun';
@@ -37,6 +38,7 @@ export function OrbitView({ className }: { className: string }) {
 
       <Earth />
       <Moon />
+      <EarthShadow />
       <OrbitPath />
 
       <BodyMarker select={selectEarth} label="Earth" color="#9fc3ff" />

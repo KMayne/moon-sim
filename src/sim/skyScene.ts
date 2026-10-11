@@ -11,6 +11,7 @@ import {
 } from '../astro/observer';
 import { length, mul, mulVec, normalize, transpose, type Mat3, type Vec3 } from '../astro/vec';
 import { vecToThree, Z_UP_TO_THREE } from './axes';
+import { lunarEclipseIllumination, type LunarEclipseIllumination } from './eclipse';
 import { lunarToSolarRatio, moonlightOnGround } from './moonlight';
 
 /**
@@ -37,6 +38,8 @@ export interface SkyScene {
   readonly lunarToSolar: number;
   /** Direct moonlight on the ground, relative to an overhead Sun outside the atmosphere. */
   readonly moonlightOnGround: number;
+  /** How eclipsed the Moon is (1 = not at all); already folded into `lunarToSolar`. */
+  readonly eclipseIllumination: LunarEclipseIllumination;
   readonly moon: AltAz;
   /** Rendered angular radius of the Moon: true topocentric value × the body-size visual aid. */
   readonly moonAngularRadius: number;
@@ -65,7 +68,9 @@ export function toSkyScene(
   const sunHor = mulVec(eqjToHor, sunTopo);
   const moonHor = mulVec(eqjToHor, moonTopo);
   const moon = altAz(moonHor);
-  const lunarToSolar = lunarToSolarRatio(state.time);
+  // Magnitudes don't know about eclipses: dim moonlight by how much of the Moon is in Earth's shadow.
+  const eclipseIllumination = lunarEclipseIllumination(state);
+  const lunarToSolar = lunarToSolarRatio(state.time) * eclipseIllumination.mean;
 
   return {
     eqjToSky,
@@ -78,6 +83,7 @@ export function toSkyScene(
     moonDirectionEcef: normalize(mulVec(transpose(state.earthOrientation), moonTopo)),
     lunarToSolar,
     moonlightOnGround: moonlightOnGround(lunarToSolar, moon.altitude),
+    eclipseIllumination,
     moon,
     moonAngularRadius: Math.asin(MOON_RADIUS_KM / length(moonTopo)) * bodySize,
     sunAngularRadius: Math.asin(SUN_RADIUS_KM / length(sunTopo)) * bodySize,

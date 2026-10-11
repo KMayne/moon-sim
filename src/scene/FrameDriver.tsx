@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { computeSystemState } from '../astro/ephemeris';
 import { toDiscScene } from '../sim/discScene';
+import { eclipseGeometry, lunarEclipseState } from '../sim/eclipse';
 import { toOrbitScene } from '../sim/orbitScene';
 import { toSkyScene } from '../sim/skyScene';
 import { useSimStore } from '../state/store';
@@ -17,11 +18,17 @@ export function FrameDriver() {
     // Read settings imperatively: changing them must not re-render the canvas tree.
     const { location, visualScale } = useSimStore.getState();
     const sky = toSkyScene(state, location, { bodySize: visualScale.bodySize });
+    const orbit = toOrbitScene(state, visualScale);
     frameRef.current = {
       simMs,
-      orbit: toOrbitScene(state, visualScale),
+      orbit,
       sky,
       disc: toDiscScene(state, sky),
+      eclipse: {
+        state: lunarEclipseState(state),
+        orbit: eclipseGeometry(state, orbit.eqjToScene),
+        sky: eclipseGeometry(state, sky.eqjToSky),
+      },
     };
   }, PRIORITY.driver);
 

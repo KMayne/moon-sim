@@ -3,7 +3,9 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { SRGBColorSpace, type Group } from 'three';
 import { DISC_CAMERA_DISTANCE } from '../../sim/discScene';
+import { eclipseDisplayGain } from '../../sim/eclipse';
 import { applyRotation } from '../applyTransform';
+import { updateEclipseUniforms } from '../eclipseShading';
 import { PRIORITY, useFrameRef } from '../frame';
 import { TEXTURE_URLS } from '../textures';
 import { DiscMoonMaterial } from './discMoonMaterial';
@@ -50,6 +52,12 @@ function DiscRig({
     applyRotation(camera, cameraRotation);
     if (moon.current) applyRotation(moon.current, moonRotation);
     material.setLighting(sunDirection, viewDirection, frame.disc.earthLitFraction);
+    // A magnified close-up auto-exposes like a camera, so totality shows its copper colour.
+    updateEclipseUniforms(
+      material.eclipse,
+      frame.eclipse.sky,
+      eclipseDisplayGain(frame.sky.eclipseIllumination),
+    );
   }, PRIORITY.update);
 
   return null;
