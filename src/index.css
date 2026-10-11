@@ -21,12 +21,19 @@ body,
 .views {
   position: relative;
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
   min-width: 0;
+  min-height: 0;
+  background: #1b2030;
 }
 
 .view {
   width: 100%;
   height: 100%;
+  min-height: 0;
+  /* Pointer gestures (drag, pinch) belong to the 3D views, not page scrolling. */
+  touch-action: none;
 }
 
 .simulation-canvas {
@@ -76,10 +83,17 @@ body,
   padding: 24px;
 }
 
+@media (max-width: 900px) {
+  .views {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
 @media (max-width: 700px) {
   .app {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: minmax(0, 1fr) auto;
   }
 
   .sidebar {

@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { OrbitScene } from '../sim/orbitScene';
+import type { SkyScene } from '../sim/skyScene';
 
 /**
  * Everything derived from sim time for the current frame. Computed once per frame by
@@ -8,6 +9,7 @@ import type { OrbitScene } from '../sim/orbitScene';
 export interface Frame {
   simMs: number;
   orbit: OrbitScene;
+  sky: SkyScene;
 }
 
 /** Mutable holder: written in the frame loop, read in the frame loop. Never React state. */

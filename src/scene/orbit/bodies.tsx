@@ -4,15 +4,11 @@ import { Quaternion, SRGBColorSpace, Vector3 } from 'three';
 import { ErrorBoundary } from '../../ErrorBoundary';
 import type { OrbitScene } from '../../sim/orbitScene';
 import { GREENWICH_POINT, NEAR_SIDE_POINT } from '../bodyLocal';
+import { TEXTURE_URLS } from '../textures';
 import { OrbitBody } from './OrbitBody';
 
 const selectEarth = (o: OrbitScene) => o.earth;
 const selectMoon = (o: OrbitScene) => o.moon;
-
-const TEXTURES = {
-  earth: `${import.meta.env.BASE_URL}textures/earth_bluemarble_4k.jpg`,
-  moon: `${import.meta.env.BASE_URL}textures/moon_svs_4k.jpg`,
-};
 
 const UP = new Vector3(0, 1, 0);
 
@@ -105,7 +101,7 @@ function Surface({ url, roughness, ...plain }: SurfaceProps & PlainProps) {
 export function Earth() {
   return (
     <OrbitBody select={selectEarth}>
-      <Surface url={TEXTURES.earth} roughness={0.9} color="#2a5d9f" gridColor="#9fc3ff" />
+      <Surface url={TEXTURE_URLS.earth} roughness={0.9} color="#2a5d9f" gridColor="#9fc3ff" />
       <SurfaceSpike at={GREENWICH_POINT} length={0.25} color="#ffd34d" />
     </OrbitBody>
   );
@@ -114,7 +110,7 @@ export function Earth() {
 export function Moon() {
   return (
     <OrbitBody select={selectMoon}>
-      <Surface url={TEXTURES.moon} roughness={1} color="#9a9a9a" gridColor="#dddddd" />
+      <Surface url={TEXTURE_URLS.moon} roughness={1} color="#9a9a9a" gridColor="#dddddd" />
       <SurfaceSpike at={NEAR_SIDE_POINT} length={0.6} color="#ff4d4d" />
     </OrbitBody>
   );

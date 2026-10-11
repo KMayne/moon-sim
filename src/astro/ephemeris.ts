@@ -1,6 +1,6 @@
 import { Body, GeoMoon, GeoVector, RotationAxis } from 'astronomy-engine';
 import { KM_PER_AU } from './constants';
-import { bodyOrientation } from './orientation';
+import { bodyOrientation, earthOrientation } from './orientation';
 import { fromAstro, scale, type Mat3, type Vec3 } from './vec';
 
 /**
@@ -11,7 +11,7 @@ export interface SystemState {
   readonly time: Date;
   readonly sun: Vec3;
   readonly moon: Vec3;
-  /** Earth body-fixed → EQJ. Columns: Greenwich (lat 0, lon 0), 90° E, north pole. */
+  /** Earth-fixed → EQJ (precise: GAST + precession/nutation). Columns: Greenwich, 90° E, pole. */
   readonly earthOrientation: Mat3;
   /** Moon body-fixed → EQJ. Column 0 is the mean sub-Earth point (lat 0, lon 0). */
   readonly moonOrientation: Mat3;
@@ -27,7 +27,7 @@ export function computeSystemState(time: Date): SystemState {
     // Apparent direction (with aberration), as an observer on Earth would see it.
     sun: scale(fromAstro(GeoVector(Body.Sun, time, true)), KM_PER_AU),
     moon: moonPositionKm(time),
-    earthOrientation: bodyOrientation(RotationAxis(Body.Earth, time)),
+    earthOrientation: earthOrientation(time),
     moonOrientation: bodyOrientation(RotationAxis(Body.Moon, time)),
   };
 }

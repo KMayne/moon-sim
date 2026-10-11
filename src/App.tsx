@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { OrbitView } from './scene/orbit/OrbitView';
+import { SkyView } from './scene/sky/SkyView';
 import { SimulationCanvas } from './scene/SimulationCanvas';
 import { useSimStore } from './state/store';
+import { useUrlSync } from './state/useUrlSync';
 import { Controls } from './ui/Controls';
 import { Hud } from './ui/Hud';
 import { TimeReadout } from './ui/TimeReadout';
@@ -24,11 +26,13 @@ function useFreezeWhenHidden() {
 export function App() {
   const views = useRef<HTMLDivElement>(null);
   useFreezeWhenHidden();
+  useUrlSync();
 
   return (
     <div className="app">
       <main className="views" ref={views}>
-        <OrbitView className="view" />
+        <OrbitView className="view view--orbit" />
+        <SkyView className="view view--sky" />
         <ErrorBoundary fallback={<p className="fallback">The 3D view failed to start.</p>}>
           <SimulationCanvas eventSource={views} />
         </ErrorBoundary>
