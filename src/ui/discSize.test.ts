@@ -18,8 +18,8 @@ describe('clampDiscSize', () => {
 });
 
 describe('dragDiscSize', () => {
-  it('grows when dragged up or left and shrinks when dragged down or right', () => {
-    expect(dragDiscSize(280, -40, -10)).toBe(320);
-    expect(dragDiscSize(280, 30, 50)).toBe(250);
+  it('grows when the left edge is dragged left and shrinks when dragged right', () => {
+    expect(dragDiscSize(280, -40)).toBe(320);
+    expect(dragDiscSize(280, 30)).toBe(250);
   });
 });

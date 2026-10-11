@@ -13,7 +13,7 @@ export function clampDiscSize(requested: number, viewWidth: number, viewHeight: 
   return Math.round(Math.min(max, Math.max(DISC_SIZE.min, requested)));
 }
 
-/** New size while dragging the top-left grip: growing up/left enlarges, the larger axis wins. */
-export function dragDiscSize(startSize: number, dx: number, dy: number): number {
-  return startSize + Math.max(-dx, -dy);
+/** New size while dragging the left edge: dragging left (into the view) enlarges. */
+export function dragDiscSize(startSize: number, dx: number): number {
+  return startSize - dx;
 }

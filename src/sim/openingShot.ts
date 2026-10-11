@@ -98,6 +98,26 @@ function fitDistance(
   return hi;
 }
 
+/** Nearest distance along `dir` (≤ maxDistance) at which the orbit's height fits, or maxDistance. */
+function fitHeightDistance(
+  dir: Vec3,
+  input: Required<OpeningShotInput>,
+  tanHalfV: number,
+  from: number,
+): number {
+  const extentAt = (d: number) =>
+    orbitExtent(scale(dir, d), input.aspect, tanHalfV, input.orbitRadius).maxY;
+  let lo = from;
+  let hi = input.maxDistance;
+  if (extentAt(hi) > ORBIT_SAFE_Y) return hi;
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2;
+    if (extentAt(mid) > ORBIT_SAFE_Y) lo = mid;
+    else hi = mid;
+  }
+  return hi;
+}
+
 /**
  * Chooses where the camera starts so the lunar orbit spans ~`widthFraction` of the view width and
  * the Sun is on screen, near a target spot: beside the orbit on wide screens, above it on narrow
@@ -112,17 +132,30 @@ export function fitOpeningShot(params: OpeningShotInput): OpeningShot {
   for (let elevation = 4; elevation <= 70; elevation += 3) {
     for (let azimuth = 0; azimuth <= 80; azimuth += 4) {
       const dir = directionFor(azimuth, elevation);
-      const distance = fitDistance(dir, input, tanHalfV);
-      if (distance === null) continue;
+      // Fit to width; in very wide, short views back off until the orbit's height fits too.
+      // Nothing is ever rejected outright, so tiny or odd viewports still get a best-effort shot.
+      let distance = fitDistance(dir, input, tanHalfV) ?? input.maxDistance;
+      let extent = orbitExtent(scale(dir, distance), input.aspect, tanHalfV, input.orbitRadius);
+      if (extent.maxY > ORBIT_SAFE_Y) {
+        distance = fitHeightDistance(dir, input, tanHalfV, distance);
+        extent = orbitExtent(scale(dir, distance), input.aspect, tanHalfV, input.orbitRadius);
+      }
       const camera = scale(dir, distance);
-      const extent = orbitExtent(camera, input.aspect, tanHalfV, input.orbitRadius);
       const sun = project(camera, input.aspect, tanHalfV, input.sunPosition);
       const sunInFrame =
         sun.depth > 0 && Math.abs(sun.x) <= SUN_SAFE && Math.abs(sun.y) <= SUN_SAFE;
-      if (extent.maxY > ORBIT_SAFE_Y) continue;
+      const overflow =
+        Math.max(0, extent.maxY - ORBIT_SAFE_Y) + Math.max(0, extent.maxX - input.widthFraction);
+      // Backed off to fit the height: the orbit no longer spans the intended width.
+      const shortfall = Math.max(0, input.widthFraction - extent.maxX - 0.005);
 
-      // Shots with the Sun on screen first; among them, the Sun closest to its target spot.
-      const score = (sunInFrame ? 1000 : 0) - Math.hypot(sun.x - target.x, sun.y - target.y);
+      // Whole orbit in view first, then the intended width, then the Sun on screen, then the Sun
+      // near its target spot. On ordinary screens this picks exactly the full-width fits.
+      const score =
+        -100_000 * overflow -
+        10_000 * shortfall +
+        (sunInFrame ? 1000 : 0) -
+        Math.hypot(sun.x - target.x, sun.y - target.y);
       if (!best || score > best.score) {
         best = {
           score,
@@ -138,6 +171,6 @@ export function fitOpeningShot(params: OpeningShotInput): OpeningShot {
       }
     }
   }
-  if (!best) throw new Error('No opening shot fits; check maxDistance against orbitRadius');
+  if (!best) throw new Error('unreachable: the candidate grid is never empty');
   return best.shot;
 }

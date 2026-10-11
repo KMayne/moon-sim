@@ -11,27 +11,41 @@
   width: 220px;
 }
 
-/* Top-left resize grip: drag diagonally (or arrow keys when focused). */
+/* Resize by dragging the left edge (split-pane style): a full-height hit zone with a small pill. */
 .grip {
   position: absolute;
   z-index: 3;
-  top: -6px;
-  left: -6px;
-  width: 18px;
-  height: 18px;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  width: 10px;
   padding: 0;
-  cursor: nwse-resize;
+  cursor: ew-resize;
   touch-action: none;
-  background:
-    linear-gradient(135deg, #8e96ad 0 2px, transparent 2px 5px, #8e96ad 5px 7px, transparent 7px)
-      no-repeat 3px 3px / 10px 10px,
-    rgb(11 13 20 / 88%);
-  border: 1px solid #2a3044;
-  border-radius: 50%;
+  background: none;
+  border: none;
+}
+
+.grip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 4px;
+  height: 36px;
+  transform: translateY(-50%);
+  background: #3a4058;
+  border-radius: 2px;
+  transition: background 120ms ease;
+}
+
+.grip:hover::after,
+.grip:focus-visible::after {
+  background: #8e96ad;
 }
 
 .grip:focus-visible {
-  outline: 2px solid var(--mantine-color-blue-5);
+  outline: none;
 }
 
 .header {

@@ -29,7 +29,7 @@ function storeSize(size: number): void {
 
 /**
  * The magnified Moon as this observer sees it, with its phase, docked to the sky view's bottom-right
- * edge and resizable from its top-left grip. The disc is a 3D view in the shared canvas; the chrome
+ * edge and resizable by dragging its left edge. The disc is a 3D view in the shared canvas; the chrome
  * here sits above it. Collapsed, the view is unmounted and the header still shows the phase.
  *
  * While open it publishes its width as `--moon-disc-width` on the views container so the transport
@@ -40,7 +40,7 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
   const [requested, setRequested] = useState(readStoredSize);
   const [host, setHost] = useState({ width: 0, height: 0 });
   const panel = useRef<HTMLElement>(null);
-  const drag = useRef<{ x: number; y: number; size: number } | null>(null);
+  const drag = useRef<{ x: number; size: number } | null>(null);
   const bodyId = useId();
 
   // Track the host view's size so the disc always fits.
@@ -74,12 +74,12 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
 
   const onGripDown = (e: PointerEvent<HTMLButtonElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, y: e.clientY, size };
+    drag.current = { x: e.clientX, size };
   };
   const onGripMove = (e: PointerEvent<HTMLButtonElement>) => {
     const start = drag.current;
     if (!start) return;
-    setRequested(dragDiscSize(start.size, e.clientX - start.x, e.clientY - start.y));
+    setRequested(dragDiscSize(start.size, e.clientX - start.x));
   };
   const onGripUp = () => {
     if (!drag.current) return;
@@ -102,14 +102,14 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
         <button
           type="button"
           className={styles.grip}
-          aria-label="Resize Moon view (drag, or use arrow keys)"
+          aria-label="Resize Moon view (drag, or use left and right arrow keys)"
           title="Drag to resize"
           onPointerDown={onGripDown}
           onPointerMove={onGripMove}
           onPointerUp={onGripUp}
           onPointerCancel={onGripUp}
           onKeyDown={(e) => {
-            const step = { ArrowUp: 1, ArrowLeft: 1, ArrowDown: -1, ArrowRight: -1 }[e.key];
+            const step = { ArrowLeft: 1, ArrowRight: -1 }[e.key];
             if (step === undefined) return;
             e.preventDefault();
             commit(clampDiscSize(size + step * DISC_SIZE.keyboardStep, host.width, host.height));

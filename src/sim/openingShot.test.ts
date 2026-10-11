@@ -30,4 +30,17 @@ describe('fitOpeningShot', () => {
     const shot = fitOpeningShot({ ...BASE, aspect: 0.4, maxDistance: 1000 });
     expect(Math.hypot(shot.position.x, shot.position.y, shot.position.z)).toBeLessThanOrEqual(1000);
   });
+
+  it('never fails on tiny or extreme viewports (best effort instead)', () => {
+    for (const aspect of [0.2, 0.5, 1, 3, 6, 12]) {
+      const shot = fitOpeningShot({
+        aspect,
+        fovDeg: 50,
+        orbitRadius: 64,
+        sunPosition: vec(1500, 0, 0),
+        maxDistance: 1000,
+      });
+      expect(Number.isFinite(shot.position.x + shot.position.y + shot.position.z)).toBe(true);
+    }
+  });
 });
