@@ -56,15 +56,21 @@ export function moonExposureBoost(moonlight: number): number {
 
 /**
  * How much of a solar eclipse's dimming the eye compensates (as MOON_ADAPTATION does for
- * moonlight). Even an 80–90% partial eclipse is barely noticed outdoors; totality still drops to
- * twilight with bright stars and planets out.
+ * moonlight). Even an 80–90% partial eclipse is barely noticed outdoors.
  */
 const ECLIPSE_ADAPTATION = 0.75;
+/**
+ * Most the eye can adapt within an eclipse, in log10. Fast adaptation (mostly the pupil) spans
+ * about this much; full dark adaptation takes 20–30 min, longer than totality ever lasts (≤ 7.5
+ * min). So totality really does get dark: about 1% of daylight on screen, like civil twilight,
+ * with the brightest stars and planets out.
+ */
+const MAX_ECLIPSE_LOG_BOOST = 1.5;
 
 /** Extra log10 exposure while the Sun's light is scaled by `sunlight` (eclipse; 1 = none). */
 export function eclipseExposureBoost(sunlight: number): number {
   if (!(sunlight > 0) || sunlight >= 1) return 0;
-  return -ECLIPSE_ADAPTATION * Math.log10(sunlight);
+  return Math.min(MAX_ECLIPSE_LOG_BOOST, -ECLIPSE_ADAPTATION * Math.log10(sunlight));
 }
 
 /**

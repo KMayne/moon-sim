@@ -64,13 +64,14 @@ describe('eye adaptation during a solar eclipse', () => {
     expect(skyExposure(30, 0, 1)).toBe(skyExposure(30));
   });
 
-  it('brightens a little for a deep partial and to near night level at totality', () => {
+  it('mostly hides a deep partial but lets totality get properly dark', () => {
     const day = skyExposure(30);
-    const partial = skyExposure(30, 0, 0.17);
-    const totality = skyExposure(30, 0, 3e-4);
-    expect(partial / day).toBeGreaterThan(2);
-    expect(partial / day).toBeLessThan(6);
-    expect(totality).toBeGreaterThan(day * 100);
-    expect(totality).toBeLessThanOrEqual(NIGHT_EXPOSURE + 1e-6);
+    const onScreen = (sunlight: number) => (sunlight * skyExposure(30, 0, sunlight)) / day;
+    expect(skyExposure(30, 0, 0.17) / day).toBeGreaterThan(2);
+    expect(onScreen(0.17)).toBeGreaterThan(0.5);
+    // Totality (sim/solarEclipse.ts residual): roughly civil-twilight dark, not just dimmer.
+    expect(onScreen(3e-4)).toBeLessThan(0.02);
+    expect(skyExposure(30, 0, 3e-4)).toBeGreaterThan(day * 10);
+    expect(skyExposure(30, 0, 3e-4)).toBeLessThanOrEqual(NIGHT_EXPOSURE + 1e-6);
   });
 });
