@@ -3,12 +3,12 @@ import { useEffect, useMemo, useRef } from 'react';
 import { CanvasTexture, SRGBColorSpace, type DirectionalLight } from 'three';
 import { NIGHT_FLOOR_MAX, nightFloorWeight } from '../../sim/groundLight';
 import { PRIORITY, useFrameRef } from '../frame';
+import { EYE_HEIGHT_M } from './eye';
 import { GroundMaterial } from './groundMaterial';
 import { SKY_RENDER_ORDER } from './renderOrder';
 
 const GROUND_RADIUS = 50_000;
-/** Eye height above the flat ground, in sky-view units (metres to the atmosphere). */
-const EYE_HEIGHT = 2;
+const EYE_HEIGHT = EYE_HEIGHT_M;
 
 /** Sunlight for the Moon. Direction only: it follows the true Sun every frame. */
 export function SkySunLight() {

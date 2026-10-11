@@ -12,6 +12,7 @@ import { GROUND_ALBEDO } from '../../sim/groundLight';
 import { MESOPIC_GLSL } from '../../sim/mesopic';
 import { CORONA_FALLOFF, CORONA_K } from '../../sim/solarEclipse';
 import { STAR_INTENSITY } from '../../sim/skyExposure';
+import { EYE_HEIGHT_M } from './eye';
 
 /**
  * takram's materials are raw GLSL3 shaders that output linear HDR radiance and expect a
@@ -85,6 +86,38 @@ function injectDisplay(
 }
 
 /**
+ * Distance along a ray to the ground sphere, for an eye just above it. takram's
+ * raySphereFirstIntersection uses the textbook quadratic: |origin|² − R² and b² − 4c each subtract
+ * two numbers of ~4×10⁷ (km²) in float32, so for an eye metres above the ground both are mostly
+ * rounding error. Per pixel that showed as speckle, and when the eye rounded to just below the
+ * ground (at some latitudes), as a black ground. Here |origin|² − R² = h(r + R) with the eye height
+ * h held to at least the real eye height, and the root is taken in the form without cancellation
+ * (product of roots = c).
+ */
+const GROUND_DISTANCE_GLSL = /* glsl */ `
+float moonSimGroundDistance(vec3 origin, vec3 direction, float radius) {
+  float r = length(origin);
+  float h = max(r - radius, ${EYE_HEIGHT_M.toFixed(1)} * METER_TO_LENGTH_UNIT);
+  float c = h * (r + radius);
+  float halfB = dot(direction, origin);
+  // No ray reaches ground beyond the horizon, √c away: clamping there is exact for real hits and
+  // lands rays that only graze the sphere (takram's RayIntersectsGround says ground) on the horizon.
+  float discriminant = max(halfB * halfB - c, 0.0);
+  return c / max(sqrt(discriminant) - halfB, sqrt(c));
+}
+`;
+
+/** takram's sky.frag camera position (see DisplaySkyMaterial.onBeforeCompile). */
+const TAKRAM_CAMERA_POSITION = 'vec3 cameraPosition = vCameraPosition;';
+
+/** takram's sky.frag ground hit, which GROUND_DISTANCE_GLSL replaces. */
+const TAKRAM_GROUND_DISTANCE = `float distanceToGround = raySphereFirstIntersection(
+      cameraPosition,
+      rayDirection,
+      ATMOSPHERE.bottom_radius
+    );`;
+
+/**
  * Moonlight (sim/moonlight.ts). Bruneton's model is linear in its light source, so the moonlit sky
  * and ground are the same functions evaluated with the Moon's direction, scaled by the Moon/Sun
  * illuminance ratio — Rayleigh-blue moonlit sky, moonlit ground with the same albedo and aerial
@@ -100,7 +133,7 @@ if (moonSimMoonScale > 0.0) {
   float moonSimR = length(cameraPosition);
   float moonSimMu = dot(cameraPosition, rayDirection) / moonSimR;
   if (RayIntersectsGround(ATMOSPHERE, moonSimR, moonSimMu)) {
-    float moonSimDistance = raySphereFirstIntersection(
+    float moonSimDistance = moonSimGroundDistance(
       cameraPosition,
       rayDirection,
       ATMOSPHERE.bottom_radius
@@ -285,9 +318,32 @@ export class DisplaySkyMaterial extends SkyMaterial {
   }
 
   override onBeforeCompile(p: WebGLProgramParametersWithUniforms, r: WebGLRenderer): void {
+    if (
+      !p.fragmentShader.includes(TAKRAM_GROUND_DISTANCE) ||
+      !p.fragmentShader.includes(TAKRAM_CAMERA_POSITION)
+    ) {
+      throw new Error(
+        'takram sky shader changed: camera / ground-distance patches no longer apply',
+      );
+    }
+    // The eye stands EYE_HEIGHT_M above the ground. takram puts the camera on the ground itself (our
+    // observer is a surface point), and in float32 it can round to just below the sphere, where the
+    // atmosphere lookups (√(r² − R²)) go NaN: specks along the horizon.
+    p.fragmentShader = p.fragmentShader.replace(
+      TAKRAM_CAMERA_POSITION,
+      `vec3 cameraPosition = normalize(vCameraPosition) * max(
+        length(vCameraPosition),
+        ATMOSPHERE.bottom_radius + ${EYE_HEIGHT_M.toFixed(1)} * METER_TO_LENGTH_UNIT
+      );`,
+    );
+    p.fragmentShader = p.fragmentShader.replace(
+      TAKRAM_GROUND_DISTANCE,
+      'float distanceToGround = moonSimGroundDistance(cameraPosition, rayDirection, ATMOSPHERE.bottom_radius);',
+    );
     p.fragmentShader = p.fragmentShader.replace(
       'precision highp sampler3D;',
-      'precision highp sampler3D;\nuniform vec2 moonSimSkyFloor;\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;\nuniform float moonSimMoonAngularRadius;\nuniform float moonSimCoronaWeight;\nuniform float moonSimEclipseResidual;\nuniform float moonSimBodySize;',
+      'precision highp sampler3D;\nuniform vec2 moonSimSkyFloor;\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;\nuniform float moonSimMoonAngularRadius;\nuniform float moonSimCoronaWeight;\nuniform float moonSimEclipseResidual;\nuniform float moonSimBodySize;\n' +
+        GROUND_DISTANCE_GLSL,
     );
     injectDisplay(p, {
       before: MOONLIGHT_GLSL + ECLIPSE_RESIDUAL_GLSL + SUN_DISC_GLSL,
