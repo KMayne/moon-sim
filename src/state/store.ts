@@ -12,7 +12,7 @@ import {
 } from '../sim/playback';
 import { TRUE_SCALE, type VisualScale } from '../sim/visualScale';
 import { DEFAULT_LOCATION, type ObserverLocation } from './locations';
-import { parseUrlState } from './urlState';
+import { parseUrlState, type OrbitFocus } from './urlState';
 
 interface SimStore {
   /** The single sim clock. Read imperatively (`clock.nowMs()`) in the frame loop, never via React. */
@@ -45,11 +45,9 @@ interface SimStore {
   setAuroraStatus: (status: AuroraStatus) => void;
 }
 
-export { TRUE_SCALE, type VisualScale };
+export { TRUE_SCALE, type OrbitFocus, type VisualScale };
 
-export type OrbitFocus = 'earth' | 'moon';
-
-/** Anything a shared link pins down (location, time, speed) overrides the defaults. */
+/** Anything a shared link pins down (location, time, speed, visual settings) overrides the defaults. */
 const fromUrl = typeof window === 'undefined' ? {} : parseUrlState(window.location.search);
 const initialPlayback = fromUrl.playback ?? DEFAULT_PLAYBACK;
 
@@ -94,15 +92,15 @@ export const useSimStore = create<SimStore>()((set, get) => {
     setLocation: (location) => {
       set({ location });
     },
-    visualScale: TRUE_SCALE,
+    visualScale: fromUrl.visualScale ?? TRUE_SCALE,
     setVisualScale: (scale) => {
       set((s) => ({ visualScale: { ...s.visualScale, ...scale } }));
     },
-    orbitFocus: 'earth',
+    orbitFocus: fromUrl.orbitFocus ?? 'earth',
     setOrbitFocus: (orbitFocus) => {
       set({ orbitFocus });
     },
-    auroraEnabled: false,
+    auroraEnabled: fromUrl.auroraEnabled ?? false,
     setAuroraEnabled: (auroraEnabled) => {
       set({ auroraEnabled });
     },

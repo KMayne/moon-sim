@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { TRUE_SCALE } from '../sim/visualScale';
 import { customLocation, LOCATION_PRESETS } from './locations';
 import { parseUrlState, serializeUrlState } from './urlState';
 
@@ -28,6 +29,24 @@ describe('parseUrlState', () => {
   });
 });
 
+describe('settings in links', () => {
+  it('reads the visual aids, filling the other with true scale', () => {
+    expect(parseUrlState('?size=10').visualScale).toEqual({ bodySize: 10, moonDistance: 1 });
+    expect(parseUrlState('?dist=0.1').visualScale).toEqual({ bodySize: 1, moonDistance: 0.1 });
+  });
+
+  it('ignores out-of-range or invalid settings', () => {
+    expect(parseUrlState('?size=100&dist=2&focus=sun&aurora=yes')).toEqual({});
+  });
+
+  it('reads orbit focus and aurora', () => {
+    expect(parseUrlState('?focus=moon&aurora=1')).toEqual({
+      orbitFocus: 'moon',
+      auroraEnabled: true,
+    });
+  });
+});
+
 describe('playback in links', () => {
   it('treats speed=0 from older links as paused at the default speed', () => {
     expect(parseUrlState('?speed=0').playback).toMatchObject({ playing: false, step: 3 });
@@ -53,6 +72,9 @@ describe('serializeUrlState', () => {
         location,
         timeMs: Date.UTC(2026, 9, 11, 22, 30),
         playback: { playing: false, reverse: true, step: 1 },
+        visualScale: { bodySize: 12.5, moonDistance: 0.25 },
+        orbitFocus: 'moon' as const,
+        auroraEnabled: true,
       };
       expect(parseUrlState(serializeUrlState(state))).toEqual(state);
     }
@@ -63,7 +85,22 @@ describe('serializeUrlState', () => {
       location: LOCATION_PRESETS.tromso,
       timeMs: Date.UTC(2026, 0, 1, 0, 0, 59, 999),
       playback: { playing: true, reverse: false, step: 0 },
+      visualScale: TRUE_SCALE,
+      orbitFocus: 'earth',
+      auroraEnabled: false,
     });
     expect(search).toContain('t=2026-01-01T00%3A00Z');
+  });
+
+  it('leaves default settings out of the link', () => {
+    const search = serializeUrlState({
+      location: LOCATION_PRESETS.tromso,
+      timeMs: Date.UTC(2026, 0, 1),
+      playback: { playing: true, reverse: false, step: 3 },
+      visualScale: TRUE_SCALE,
+      orbitFocus: 'earth',
+      auroraEnabled: false,
+    });
+    expect(search).not.toMatch(/size=|dist=|focus=|aurora=/);
   });
 });
