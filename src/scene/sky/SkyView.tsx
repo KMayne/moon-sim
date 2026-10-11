@@ -1,6 +1,7 @@
 import { PerspectiveCamera, View } from '@react-three/drei';
 import { Suspense, useRef } from 'react';
 import { ErrorBoundary } from '../../ErrorBoundary';
+import { Aurora } from '../aurora/Aurora';
 import { Atmosphere } from './Atmosphere';
 import { DailyArcs } from './DailyArcs';
 import { DEFAULT_FOV, LookAroundControls } from './LookAroundControls';
@@ -34,6 +35,7 @@ export function SkyView({ className }: { className: string }) {
       <SkySunLight />
       <Ground />
       <SkyMoon />
+      <Aurora />
       <DailyArcs />
       <CompassLabels />
     </View>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { SimClock } from '../sim/clock';
+import type { AuroraStatus } from '../sim/auroraVisibility';
 import { TRUE_SCALE, type VisualScale } from '../sim/visualScale';
 import { SPEED_PRESETS } from '../ui/speeds';
 import { DEFAULT_LOCATION, type ObserverLocation } from './locations';
@@ -21,6 +22,12 @@ interface SimStore {
   /** Visual aids only (render-time); 1 = true scale. Never fed back into astronomy. */
   visualScale: VisualScale;
   setVisualScale: (scale: Partial<VisualScale>) => void;
+  /** Cosmetic aurora in the sky view. Flair only: not simulated, off by default. */
+  auroraEnabled: boolean;
+  setAuroraEnabled: (enabled: boolean) => void;
+  /** Written by the sky view only when it changes; drives the "why can't I see it" hint. */
+  auroraStatus: AuroraStatus;
+  setAuroraStatus: (status: AuroraStatus) => void;
 }
 
 export { TRUE_SCALE, type VisualScale };
@@ -58,6 +65,14 @@ export const useSimStore = create<SimStore>()((set) => {
     visualScale: TRUE_SCALE,
     setVisualScale: (scale) => {
       set((s) => ({ visualScale: { ...s.visualScale, ...scale } }));
+    },
+    auroraEnabled: false,
+    setAuroraEnabled: (auroraEnabled) => {
+      set({ auroraEnabled });
+    },
+    auroraStatus: 'not-dark',
+    setAuroraStatus: (auroraStatus) => {
+      set({ auroraStatus });
     },
   };
 });

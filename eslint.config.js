@@ -70,6 +70,31 @@ export default tseslint.config(
       ],
     },
   },
+  // The aurora is cosmetic flair: mechanically keep it away from astronomy and the sim clock.
+  {
+    files: ['src/scene/aurora/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: 'leva', message: 'Only src/ui/Controls.tsx may import leva.' }],
+          patterns: [
+            {
+              group: ['astronomy-engine', '**/astro/*', '**/sim/clock', '**/sim/*Scene'],
+              message: 'The aurora is cosmetic: no astronomy or sim-time imports.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'MemberExpression[property.name=/^(clock|nowMs|simMs|speed)$/]',
+          message: 'The aurora runs on its own wall clock, never sim time or speed.',
+        },
+      ],
+    },
+  },
   {
     files: ['*.config.{js,ts}'],
     languageOptions: { globals: globals.node },
