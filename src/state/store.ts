@@ -15,7 +15,19 @@ interface SimStore {
   /** Observer for the sky view, HUD rise/set times and local time. */
   location: ObserverLocation;
   setLocation: (location: ObserverLocation) => void;
+  /** Visual aids only (render-time); 1 = true scale. Never fed back into astronomy. */
+  visualScale: VisualScale;
+  setVisualScale: (scale: Partial<VisualScale>) => void;
 }
+
+export interface VisualScale {
+  /** Multiplies the Moon's rendered radius only. */
+  moonSize: number;
+  /** Multiplies the Moon's rendered distance from Earth only. */
+  moonDistance: number;
+}
+
+export const TRUE_SCALE: VisualScale = { moonSize: 1, moonDistance: 1 };
 
 export const useSimStore = create<SimStore>()((set) => {
   const clock = new SimClock({
@@ -39,6 +51,10 @@ export const useSimStore = create<SimStore>()((set) => {
     location: DEFAULT_LOCATION,
     setLocation: (location) => {
       set({ location });
+    },
+    visualScale: TRUE_SCALE,
+    setVisualScale: (scale) => {
+      set((s) => ({ visualScale: { ...s.visualScale, ...scale } }));
     },
   };
 });
