@@ -1,3 +1,4 @@
+import { Divider } from '@mantine/core';
 import { useEffect, useRef } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { OrbitView } from './scene/orbit/OrbitView';
@@ -6,6 +7,7 @@ import { SimulationCanvas } from './scene/SimulationCanvas';
 import { useSimStore } from './state/store';
 import { useUrlSync } from './state/useUrlSync';
 import { Controls } from './ui/Controls';
+import { EclipsesSection } from './ui/controls/EclipsesSection';
 import { Hud } from './ui/Hud';
 import { MoonDiscPanel } from './ui/MoonDiscPanel';
 import { TimeReadout } from './ui/TimeReadout';
@@ -50,6 +52,9 @@ export function App() {
       <aside className="sidebar">
         <div className="sidebar__scroll">
           <Hud snap={snap} />
+          <Divider />
+          <EclipsesSection snap={snap} />
+          <Divider />
           <Controls />
         </div>
         <a className="sidebar__credit" href="https://kianmayne.co.uk/">

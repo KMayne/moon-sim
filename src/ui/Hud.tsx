@@ -7,7 +7,6 @@ import {
   formatPercent,
   formatUtc,
 } from './format';
-import { EclipseList } from './EclipseList';
 import styles from './Hud.module.css';
 import type { HudSnapshot } from './hudModel';
 import { hudSummary } from './hudSummary';
@@ -66,8 +65,6 @@ export function Hud({ snap }: { snap: HudSnapshot }) {
           <p className={styles.note}>
             Rise/set: next within 48 h, observer local time ({snap.zone}).
           </p>
-          <h3 className={styles.subtitle}>Eclipses</h3>
-          <EclipseList eclipses={snap.eclipses} zone={snap.zone} />
         </div>
       </div>
     </section>
