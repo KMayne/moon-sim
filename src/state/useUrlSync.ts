@@ -5,16 +5,24 @@ import { serializeUrlState } from './urlState';
 const SYNC_INTERVAL_MS = 1000;
 
 /**
- * Keeps the address bar a shareable link to what's on screen (location, sim time, speed and the
- * visual settings).
+ * Keeps the address bar a shareable link to what's on screen (location, sim time, speed, the
+ * visual settings and both cameras).
  * Polled, not per frame: sim time changes continuously and replaceState is not free.
  */
 export function useUrlSync(): void {
   useEffect(() => {
     let last = '';
     const sync = () => {
-      const { clock, playback, location, visualScale, orbitFocus, auroraEnabled } =
-        useSimStore.getState();
+      const {
+        clock,
+        playback,
+        location,
+        visualScale,
+        orbitFocus,
+        auroraEnabled,
+        skyLook,
+        orbitCamera,
+      } = useSimStore.getState();
       const search = serializeUrlState({
         location,
         timeMs: clock.nowMs(),
@@ -22,6 +30,8 @@ export function useUrlSync(): void {
         visualScale,
         orbitFocus,
         auroraEnabled,
+        skyLook,
+        orbitCamera,
       });
       if (search !== last) {
         last = search;

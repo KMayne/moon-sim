@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { OrbitCamera, SkyLook } from '../sim/cameraViews';
 import { SimClock } from '../sim/clock';
 import type { AuroraStatus } from '../sim/auroraVisibility';
 import {
@@ -40,6 +41,12 @@ interface SimStore {
   /** Cosmetic aurora in the sky view. Flair only: not simulated, off by default. */
   auroraEnabled: boolean;
   setAuroraEnabled: (enabled: boolean) => void;
+  /** Sky view look direction and zoom; null = the default, equator-facing view. */
+  skyLook: SkyLook | null;
+  setSkyLook: (look: SkyLook | null) => void;
+  /** Orbit camera offset from its focus body; null = the fitted opening shot / Moon close-up. */
+  orbitCamera: OrbitCamera | null;
+  setOrbitCamera: (camera: OrbitCamera | null) => void;
   /** Written by the sky view only when it changes; drives the "why can't I see it" hint. */
   auroraStatus: AuroraStatus;
   setAuroraStatus: (status: AuroraStatus) => void;
@@ -47,7 +54,7 @@ interface SimStore {
 
 export { TRUE_SCALE, type OrbitFocus, type VisualScale };
 
-/** Anything a shared link pins down (location, time, speed, visual settings) overrides the defaults. */
+/** Anything a shared link pins down (location, time, speed, settings, cameras) overrides the defaults. */
 const fromUrl = typeof window === 'undefined' ? {} : parseUrlState(window.location.search);
 const initialPlayback = fromUrl.playback ?? DEFAULT_PLAYBACK;
 
@@ -103,6 +110,14 @@ export const useSimStore = create<SimStore>()((set, get) => {
     auroraEnabled: fromUrl.auroraEnabled ?? false,
     setAuroraEnabled: (auroraEnabled) => {
       set({ auroraEnabled });
+    },
+    skyLook: fromUrl.skyLook ?? null,
+    setSkyLook: (skyLook) => {
+      set({ skyLook });
+    },
+    orbitCamera: fromUrl.orbitCamera ?? null,
+    setOrbitCamera: (orbitCamera) => {
+      set({ orbitCamera });
     },
     auroraStatus: 'not-dark',
     setAuroraStatus: (auroraStatus) => {

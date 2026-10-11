@@ -50,8 +50,9 @@ export function OpeningShot({ maxDistance }: { maxDistance: number }) {
 
   useFrame(() => {
     if (userHasMoved.current || !controls) return;
-    // Focusing the Moon hands the camera to <FocusRig> for good.
-    if (useSimStore.getState().orbitFocus !== 'earth') {
+    // Focusing the Moon, or a camera from a shared link, hands the camera to <FocusRig> for good.
+    const { orbitFocus, orbitCamera } = useSimStore.getState();
+    if (orbitFocus !== 'earth' || orbitCamera !== null) {
       userHasMoved.current = true;
       return;
     }

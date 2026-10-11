@@ -1,3 +1,11 @@
+import {
+  formatOrbitCamera,
+  formatSkyLook,
+  parseOrbitCamera,
+  parseSkyLook,
+  type OrbitCamera,
+  type SkyLook,
+} from '../sim/cameraViews';
 import { MAX_SIM_TIME, MIN_SIM_TIME } from '../sim/clock';
 import { playbackFromSpeed, playbackSpeed, type Playback } from '../sim/playback';
 import {
@@ -22,6 +30,9 @@ export interface UrlState {
   visualScale?: VisualScale;
   orbitFocus?: OrbitFocus;
   auroraEnabled?: boolean;
+  /** `null`: the view's own default framing. */
+  skyLook?: SkyLook | null;
+  orbitCamera?: OrbitCamera | null;
 }
 
 export type OrbitFocus = 'earth' | 'moon';
@@ -39,8 +50,9 @@ const inRange = (n: number | undefined, { min, max }: { min: number; max: number
 
 /**
  * Reads `?loc=tromso` or `?lat=..&lon=..[&name=..]`, `t=<ISO 8601>`, `speed=<signed step speed>`,
- * `paused=1`, the visual aids `size=<body size>` and `dist=<Moon distance>`, `focus=moon` and
- * `aurora=1`. Speeds must be one of the playback steps; `speed=0` (older links) means paused.
+ * `paused=1`, the visual aids `size=<body size>` and `dist=<Moon distance>`, `focus=moon`,
+ * `aurora=1`, and the cameras: `sky=<azimuth>,<altitude>,<fov>` (degrees) and `cam=<x>,<y>,<z>`
+ * (the orbit camera's offset from the body it's centred on). Speeds must be one of the playback steps; `speed=0` (older links) means paused.
  */
 export function parseUrlState(search: string): UrlState {
   const params = new URLSearchParams(search);
@@ -83,6 +95,11 @@ export function parseUrlState(search: string): UrlState {
   const aurora = params.get('aurora');
   if (aurora === '1' || aurora === '0') state.auroraEnabled = aurora === '1';
 
+  const skyLook = parseSkyLook(params.get('sky'));
+  if (skyLook) state.skyLook = skyLook;
+  const orbitCamera = parseOrbitCamera(params.get('cam'));
+  if (orbitCamera) state.orbitCamera = orbitCamera;
+
   return state;
 }
 
@@ -99,6 +116,8 @@ export function serializeUrlState({
   visualScale,
   orbitFocus,
   auroraEnabled,
+  skyLook,
+  orbitCamera,
 }: Required<UrlState>): string {
   const params = new URLSearchParams();
   if (location.id === 'custom') {
@@ -118,5 +137,8 @@ export function serializeUrlState({
   }
   if (orbitFocus !== 'earth') params.set('focus', orbitFocus);
   if (auroraEnabled) params.set('aurora', '1');
-  return `?${params.toString()}`;
+  if (skyLook) params.set('sky', formatSkyLook(skyLook));
+  if (orbitCamera) params.set('cam', formatOrbitCamera(orbitCamera));
+  // Commas are fine in a query string; leaving them unescaped keeps the camera values readable.
+  return `?${params.toString().replaceAll('%2C', ',')}`;
 }

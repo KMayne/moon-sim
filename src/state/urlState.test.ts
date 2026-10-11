@@ -75,6 +75,8 @@ describe('serializeUrlState', () => {
         visualScale: { bodySize: 12.5, moonDistance: 0.25 },
         orbitFocus: 'moon' as const,
         auroraEnabled: true,
+        skyLook: { azimuthDeg: 90, altitudeDeg: 35.5, fovDeg: 20 },
+        orbitCamera: { x: 1.25, y: -0.5, z: 2 },
       };
       expect(parseUrlState(serializeUrlState(state))).toEqual(state);
     }
@@ -88,6 +90,8 @@ describe('serializeUrlState', () => {
       visualScale: TRUE_SCALE,
       orbitFocus: 'earth',
       auroraEnabled: false,
+      skyLook: null,
+      orbitCamera: null,
     });
     expect(search).toContain('t=2026-01-01T00%3A00Z');
   });
@@ -100,7 +104,24 @@ describe('serializeUrlState', () => {
       visualScale: TRUE_SCALE,
       orbitFocus: 'earth',
       auroraEnabled: false,
+      skyLook: null,
+      orbitCamera: null,
     });
-    expect(search).not.toMatch(/size=|dist=|focus=|aurora=/);
+    expect(search).not.toMatch(/size=|dist=|focus=|aurora=|sky=|cam=/);
+  });
+
+  it('writes cameras with readable commas', () => {
+    const search = serializeUrlState({
+      location: LOCATION_PRESETS.tromso,
+      timeMs: Date.UTC(2026, 0, 1),
+      playback: { playing: true, reverse: false, step: 3 },
+      visualScale: TRUE_SCALE,
+      orbitFocus: 'earth',
+      auroraEnabled: false,
+      skyLook: { azimuthDeg: 180, altitudeDeg: 20, fovDeg: 70 },
+      orbitCamera: { x: -150, y: 45, z: 67 },
+    });
+    expect(search).toContain('sky=180,20,70');
+    expect(search).toContain('cam=-150,45,67');
   });
 });

@@ -1,15 +1,21 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, type RefObject } from 'react';
 import type { PerspectiveCamera } from 'three';
+import {
+  DEFAULT_SKY_FOV,
+  defaultSkyLook,
+  normalizeSkyLook,
+  sameView,
+  SKY_ALTITUDE_RANGE,
+  SKY_FOV_RANGE,
+  type SkyLook,
+} from '../../sim/cameraViews';
 import { useSimStore } from '../../state/store';
 
 const DEG = Math.PI / 180;
-const MIN_ALT = -10 * DEG;
-const MAX_ALT = 89.5 * DEG;
-const MIN_FOV = 10;
-const MAX_FOV = 100;
-export const DEFAULT_FOV = 70;
-const DEFAULT_ALT = 20 * DEG;
+const MIN_ALT = SKY_ALTITUDE_RANGE.min * DEG;
+const MAX_ALT = SKY_ALTITUDE_RANGE.max * DEG;
+export const DEFAULT_FOV = DEFAULT_SKY_FOV;
 
 interface View {
   /** Radians clockwise from north. */
@@ -18,29 +24,36 @@ interface View {
   fov: number;
 }
 
-/**
- * Equator-facing: that's where the Sun and Moon culminate, so their whole daily arcs are in view.
- * South from the northern hemisphere, north from the southern.
- */
-const defaultView = (latitude: number): View => ({
-  azimuth: latitude >= 0 ? Math.PI : 0,
-  altitude: DEFAULT_ALT,
-  fov: DEFAULT_FOV,
+const toView = (look: SkyLook): View => ({
+  azimuth: look.azimuthDeg * DEG,
+  altitude: look.altitudeDeg * DEG,
+  fov: look.fovDeg,
 });
+
+const toLook = ({ azimuth, altitude, fov }: View): SkyLook =>
+  normalizeSkyLook({ azimuthDeg: azimuth / DEG, altitudeDeg: altitude / DEG, fovDeg: fov });
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 /**
  * Turntable look-around for an observer at the origin: drag to turn (azimuth) and tilt
  * (altitude), wheel or pinch to zoom (field of view). No roll, so the horizon always stays level.
- * Resets to the default view when the observer's location changes.
+ * Starts from the store's `skyLook` (e.g. from a shared link) and records every move there. Resets
+ * to the default view when the observer's location changes.
  */
 export function LookAroundControls({ element }: { element: RefObject<HTMLElement | null> }) {
   const location = useSimStore((s) => s.location);
-  const view = useRef<View>(defaultView(location.latitude));
+  const view = useRef<View>(
+    toView(useSimStore.getState().skyLook ?? defaultSkyLook(location.latitude)),
+  );
+  const lastLocation = useRef(location);
 
   useEffect(() => {
-    view.current = defaultView(location.latitude);
+    // Not on mount: a shared link's view must survive the first render.
+    if (location === lastLocation.current) return;
+    lastLocation.current = location;
+    view.current = toView(defaultSkyLook(location.latitude));
+    useSimStore.getState().setSkyLook(null);
   }, [location]);
 
   useEffect(() => {
@@ -48,10 +61,17 @@ export function LookAroundControls({ element }: { element: RefObject<HTMLElement
     if (!el) return;
     const pointers = new Map<number, { x: number; y: number }>();
     let pinchDistance = 0;
+    /** Store only real changes: pointer moves far outnumber 0.1° steps. */
+    const record = () => {
+      const { skyLook, setSkyLook } = useSimStore.getState();
+      const look = toLook(view.current);
+      if (!sameView(look, skyLook)) setSkyLook(look);
+    };
 
     const radiansPerPixel = () => (view.current.fov * DEG) / Math.max(1, el.clientHeight);
     const zoom = (factor: number) => {
-      view.current.fov = clamp(view.current.fov * factor, MIN_FOV, MAX_FOV);
+      view.current.fov = clamp(view.current.fov * factor, SKY_FOV_RANGE.min, SKY_FOV_RANGE.max);
+      record();
     };
     const spread = () => {
       const [a, b] = [...pointers.values()];
@@ -70,12 +90,10 @@ export function LookAroundControls({ element }: { element: RefObject<HTMLElement
       if (pointers.size === 1) {
         // Grab-the-sky: content follows the pointer.
         const k = radiansPerPixel();
-        view.current.azimuth -= (e.clientX - prev.x) * k;
-        view.current.altitude = clamp(
-          view.current.altitude + (e.clientY - prev.y) * k,
-          MIN_ALT,
-          MAX_ALT,
-        );
+        const v = view.current;
+        v.azimuth -= (e.clientX - prev.x) * k;
+        v.altitude = clamp(v.altitude + (e.clientY - prev.y) * k, MIN_ALT, MAX_ALT);
+        record();
       } else if (pointers.size === 2) {
         const d = spread();
         if (pinchDistance > 0 && d > 0) zoom(pinchDistance / d);
