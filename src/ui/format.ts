@@ -48,10 +48,11 @@ export const formatLocal = (ms: number, zone: string): string =>
 export function formatEvent(event: HorizonEvent, zone: string): string {
   if (event.found) return formatter(zone, 'event').format(event.timeMs);
   switch (event.reason) {
+    // The search only looks 48 h ahead, so say exactly that rather than "all day"/"always".
     case 'circumpolar':
-      return 'Circumpolar';
+      return 'Up for the next 48 h';
     case 'never-rises':
-      return 'Below horizon all day';
+      return 'Down for the next 48 h';
     case 'none-in-window':
       return '—';
   }

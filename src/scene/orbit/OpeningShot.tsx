@@ -4,7 +4,7 @@ import type { PerspectiveCamera, Vector3 } from 'three';
 import { EARTH_RADIUS_KM } from '../../astro/constants';
 import { vec } from '../../astro/vec';
 import { fitOpeningShot } from '../../sim/openingShot';
-import { PRIORITY } from '../frame';
+import { PRIORITY, useFrameRef } from '../frame';
 import { SUN_DISTANCE } from './Sun';
 
 /** Apogee never exceeds ~406,700 km; frame a little beyond it. */
@@ -21,14 +21,20 @@ interface Controls {
 }
 
 /**
- * Frames the opening shot for the current viewport shape and keeps doing so on resize — until the
- * user first moves the camera, after which it never touches the camera again.
+ * Frames the opening shot for the current viewport shape and keeps doing so on resize or a change
+ * of the distance visual aid — until the user first moves the camera, after which it never touches the camera again.
  */
 export function OpeningShot({ maxDistance }: { maxDistance: number }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const controls = useThree((s) => s.controls) as unknown as Controls | null;
   const userHasMoved = useRef(false);
-  const fitted = useRef({ aspect: Number.NaN, pendingSince: Number.NaN, frames: 0 });
+  const frameRef = useFrameRef();
+  const fitted = useRef({
+    aspect: Number.NaN,
+    orbitRadius: Number.NaN,
+    pendingSince: Number.NaN,
+    frames: 0,
+  });
 
   useEffect(() => {
     if (!controls) return;
@@ -48,7 +54,9 @@ export function OpeningShot({ maxDistance }: { maxDistance: number }) {
     // this callback — so the first frame's aspect is not yet the view's.
     if (state.frames++ < 1) return;
     const aspect = camera.aspect;
-    if (Math.abs(aspect - state.aspect) < 1e-3) {
+    // Frame the orbit as drawn: the distance visual aid shrinks it, so refit when that changes.
+    const orbitRadius = ORBIT_RADIUS * (frameRef.current?.orbit.visualScale.moonDistance ?? 1);
+    if (Math.abs(aspect - state.aspect) < 1e-3 && orbitRadius === state.orbitRadius) {
       state.pendingSince = Number.NaN;
       return;
     }
@@ -62,7 +70,7 @@ export function OpeningShot({ maxDistance }: { maxDistance: number }) {
     const shot = fitOpeningShot({
       aspect,
       fovDeg: camera.fov,
-      orbitRadius: ORBIT_RADIUS,
+      orbitRadius,
       sunPosition: vec(SUN_DISTANCE, 0, 0),
       maxDistance,
     });
@@ -70,6 +78,7 @@ export function OpeningShot({ maxDistance }: { maxDistance: number }) {
     controls.target.set(0, 0, 0);
     controls.update();
     state.aspect = aspect;
+    state.orbitRadius = orbitRadius;
     state.pendingSince = Number.NaN;
   }, PRIORITY.update);
 

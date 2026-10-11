@@ -24,9 +24,11 @@ describe('formatEvent', () => {
   it('formats found events in local time and explains missing ones', () => {
     const t = Date.UTC(2026, 6, 1, 12, 0); // a Wednesday
     expect(formatEvent({ found: true, timeMs: t }, 'Europe/Oslo')).toBe('Wed 14:00');
-    expect(formatEvent({ found: false, reason: 'circumpolar' }, 'UTC')).toBe('Circumpolar');
+    expect(formatEvent({ found: false, reason: 'circumpolar' }, 'UTC')).toBe(
+      'Up for the next 48 h',
+    );
     expect(formatEvent({ found: false, reason: 'never-rises' }, 'UTC')).toBe(
-      'Below horizon all day',
+      'Down for the next 48 h',
     );
     expect(formatEvent({ found: false, reason: 'none-in-window' }, 'UTC')).toBe('—');
   });
