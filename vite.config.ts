@@ -6,8 +6,9 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [react()],
-  // Agent worktrees live under .claude/; watching or dep-scanning them reloads the dev page.
-  server: { watch: { ignored: ['**/.claude/**'] } },
+  // Agent worktrees live under <root>/.claude/worktrees/; watching them reloads this dev page.
+  // Anchored to this root, so a dev server started inside a worktree still watches itself.
+  server: { watch: { ignored: [`${import.meta.dirname}/.claude/worktrees/**`] } },
   optimizeDeps: { entries: ['index.html'] },
   test: {
     include: ['src/**/*.test.ts'],
