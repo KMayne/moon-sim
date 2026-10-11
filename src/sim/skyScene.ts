@@ -11,6 +11,7 @@ import {
 } from '../astro/observer';
 import { length, mul, mulVec, normalize, transpose, type Mat3, type Vec3 } from '../astro/vec';
 import { vecToThree, Z_UP_TO_THREE } from './axes';
+import { lunarToSolarRatio, moonlightOnGround } from './moonlight';
 
 /**
  * The sky as seen by an observer. World axes (three, Y-up) are the observer's local
@@ -30,6 +31,12 @@ export interface SkyScene {
   readonly sun: AltAz;
   /** Unit vector to the Moon, sky world (topocentric, so includes parallax). */
   readonly moonDirection: Vec3;
+  /** Unit vector to the Moon, Earth-fixed — for lighting the atmosphere by moonlight. */
+  readonly moonDirectionEcef: Vec3;
+  /** Moonlight relative to sunlight outside the atmosphere (see sim/moonlight.ts). */
+  readonly lunarToSolar: number;
+  /** Direct moonlight on the ground, relative to an overhead Sun outside the atmosphere. */
+  readonly moonlightOnGround: number;
   readonly moon: AltAz;
   /** Rendered angular radius of the Moon: true topocentric value × the moon-size visual aid. */
   readonly moonAngularRadius: number;
@@ -55,6 +62,8 @@ export function toSkyScene(
   const moonTopo = topocentric(state.moon, state.earthOrientation, observer);
   const sunHor = mulVec(eqjToHor, sunTopo);
   const moonHor = mulVec(eqjToHor, moonTopo);
+  const moon = altAz(moonHor);
+  const lunarToSolar = lunarToSolarRatio(state.time);
 
   return {
     eqjToSky,
@@ -64,7 +73,10 @@ export function toSkyScene(
     sunDirectionEcef: normalize(mulVec(transpose(state.earthOrientation), sunTopo)),
     sun: altAz(sunHor),
     moonDirection: normalize(vecToThree(moonHor)),
-    moon: altAz(moonHor),
+    moonDirectionEcef: normalize(mulVec(transpose(state.earthOrientation), moonTopo)),
+    lunarToSolar,
+    moonlightOnGround: moonlightOnGround(lunarToSolar, moon.altitude),
+    moon,
     moonAngularRadius: Math.asin(MOON_RADIUS_KM / length(moonTopo)) * moonSize,
     moonRotation: mul(mul(eqjToSky, state.moonOrientation), transpose(Z_UP_TO_THREE)),
   };

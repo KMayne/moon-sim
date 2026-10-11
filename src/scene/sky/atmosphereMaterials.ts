@@ -1,8 +1,10 @@
 import { SkyMaterial, StarsMaterial } from '@takram/three-atmosphere';
 import {
+  AdditiveBlending,
   Color,
   Uniform,
   Vector2,
+  Vector3,
   type WebGLProgramParametersWithUniforms,
   type WebGLRenderer,
 } from 'three';
@@ -53,14 +55,73 @@ vec3 moonSimDisplay(vec3 radiance) {
 }
 `;
 
-function injectDisplay(parameters: WebGLProgramParametersWithUniforms, after = ''): void {
+/**
+ * Wraps the end of a takram fragment shader: `before` runs on linear radiance, then exposure + tone
+ * mapping + sRGB, then `after` in display space.
+ */
+function injectDisplay(
+  parameters: WebGLProgramParametersWithUniforms,
+  { before = '', after = '' }: { before?: string; after?: string } = {},
+): void {
   parameters.fragmentShader = parameters.fragmentShader
     .replace('precision highp sampler3D;', `precision highp sampler3D;\n${DISPLAY_GLSL}`)
     .replace(
       '#include <mrt_output>',
-      `outputColor.rgb = moonSimDisplay(outputColor.rgb);\n${after}\n#include <mrt_output>`,
+      `${before}\noutputColor.rgb = moonSimDisplay(outputColor.rgb);\n${after}\n#include <mrt_output>`,
     );
 }
+
+/**
+ * Moonlight (sim/moonlight.ts). Bruneton's model is linear in its light source, so the moonlit sky
+ * and ground are the same functions evaluated with the Moon's direction, scaled by the Moon/Sun
+ * illuminance ratio — Rayleigh-blue moonlit sky, moonlit ground with the same albedo and aerial
+ * perspective as by day. Runs only when the scale is non-zero (a uniform branch), so daytime and
+ * moonless nights pay nothing. Locals used from takram's sky.frag main(): cameraPosition,
+ * rayDirection, shadowLength, groundAlbedo.
+ */
+const MOONLIGHT_GLSL = /* glsl */ `
+outputColor.rgb *= moonSimSunScale;
+if (moonSimMoonScale > 0.0) {
+  vec3 moonSimRadiance;
+  vec3 moonSimTransmittance;
+  float moonSimR = length(cameraPosition);
+  float moonSimMu = dot(cameraPosition, rayDirection) / moonSimR;
+  if (RayIntersectsGround(ATMOSPHERE, moonSimR, moonSimMu)) {
+    float moonSimDistance = raySphereFirstIntersection(
+      cameraPosition,
+      rayDirection,
+      ATMOSPHERE.bottom_radius
+    );
+    vec3 moonSimNormal = normalize(rayDirection * moonSimDistance + cameraPosition);
+    vec3 moonSimSkyIrradiance;
+    vec3 moonSimDirectIrradiance = GetSunAndSkyIrradiance(
+      cameraPosition,
+      moonSimNormal,
+      moonSimMoonDirection,
+      moonSimSkyIrradiance
+    );
+    vec3 moonSimInscatter = GetSkyRadianceToPoint(
+      cameraPosition,
+      ATMOSPHERE.bottom_radius * moonSimNormal,
+      shadowLength,
+      moonSimMoonDirection,
+      moonSimTransmittance
+    );
+    moonSimRadiance =
+      groundAlbedo * RECIPROCAL_PI * (moonSimDirectIrradiance + moonSimSkyIrradiance) *
+      moonSimTransmittance + moonSimInscatter;
+  } else {
+    moonSimRadiance = GetSkyRadiance(
+      cameraPosition,
+      rayDirection,
+      shadowLength,
+      moonSimMoonDirection,
+      moonSimTransmittance
+    );
+  }
+  outputColor.rgb += moonSimRadiance * moonSimMoonScale;
+}
+`;
 
 /**
  * Display-only night floor for the sky (see sim/groundLight.ts): added after tone mapping, above the
@@ -91,9 +152,23 @@ export class DisplaySkyMaterial extends SkyMaterial {
     });
     this.uniforms.moonSimExposure = new Uniform(INITIAL_EXPOSURE);
     this.uniforms.moonSimSkyFloor = new Uniform(new Vector2(0, 0));
+    this.uniforms.moonSimMoonDirection = new Uniform(new Vector3(0, 0, 1));
+    this.uniforms.moonSimMoonScale = new Uniform(0);
+    this.uniforms.moonSimSunScale = new Uniform(1);
   }
 
-  set exposure(value: number) {
+  /** Moonlight: Moon direction (ECEF) and its light relative to the Sun's (0 = off). */
+  setMoonlight(x: number, y: number, z: number, scale: number): void {
+    (this.uniforms.moonSimMoonDirection as Uniform<Vector3>).value.set(x, y, z);
+    (this.uniforms.moonSimMoonScale as Uniform<number>).value = scale;
+  }
+
+  /** Multiplier on the Sun's own scattering (fades it out by the end of astronomical twilight). */
+  setSunScale(value: number): void {
+    (this.uniforms.moonSimSunScale as Uniform<number>).value = value;
+  }
+
+  setExposure(value: number): void {
     (this.uniforms.moonSimExposure as Uniform<number>).value = value;
   }
 
@@ -105,25 +180,79 @@ export class DisplaySkyMaterial extends SkyMaterial {
   override onBeforeCompile(p: WebGLProgramParametersWithUniforms, r: WebGLRenderer): void {
     p.fragmentShader = p.fragmentShader.replace(
       'precision highp sampler3D;',
-      'precision highp sampler3D;\nuniform vec2 moonSimSkyFloor;',
+      'precision highp sampler3D;\nuniform vec2 moonSimSkyFloor;\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;',
     );
-    injectDisplay(p, SKY_FLOOR_GLSL);
+    injectDisplay(p, { before: MOONLIGHT_GLSL, after: SKY_FLOOR_GLSL });
     super.onBeforeCompile(p, r);
   }
 }
+
+/**
+ * Stars, additively. takram's background stars are opaque: each star pixel recomputes the
+ * Sun-lit sky behind it and overwrites the framebuffer — which drops our moonlight and night floor
+ * and leaves dark specks on a moonlit sky. Instead each star pixel outputs only what the star adds
+ * as displayed, display(sky + star) − display(sky), with the sky recomputed exactly as the sky shader
+ * does (Sun term × sun scale + Moon term). Through the tone curve, faint stars then drown in a
+ * bright moonlit sky as they do outdoors. Locals of takram's stars.frag main() (BACKGROUND
+ * branch): radiance, transmittance, rayDirection, vCameraPosition, vColor.
+ */
+const STARS_GLSL = /* glsl */ `
+{
+  vec3 moonSimSky = (radiance - transmittance * vColor) * moonSimSunScale;
+  if (moonSimMoonScale > 0.0) {
+    vec3 moonSimTransmittance;
+    moonSimSky += moonSimMoonScale * GetSkyRadiance(
+      vCameraPosition,
+      rayDirection,
+      0.0,
+      moonSimMoonDirection,
+      moonSimTransmittance
+    );
+  }
+  vec3 moonSimStar = transmittance * vColor * moonSimStarScale;
+  outputColor = vec4(moonSimDisplay(moonSimSky + moonSimStar) - moonSimDisplay(moonSimSky), 1.0);
+}
+`;
 
 export class DisplayStarsMaterial extends StarsMaterial {
   constructor() {
     super({ background: true, intensity: STAR_INTENSITY });
     this.uniforms.moonSimExposure = new Uniform(INITIAL_EXPOSURE);
+    this.uniforms.moonSimMoonDirection = new Uniform(new Vector3(0, 0, 1));
+    this.uniforms.moonSimMoonScale = new Uniform(0);
+    this.uniforms.moonSimSunScale = new Uniform(1);
+    this.uniforms.moonSimStarScale = new Uniform(1);
+    this.blending = AdditiveBlending;
+    this.depthWrite = false;
   }
 
-  set exposure(value: number) {
-    (this.uniforms.moonSimExposure as Uniform<number>).value = value;
+  /**
+   * @param exposure The sky's exposure (stars must be tone-mapped against the same sky).
+   * @param starExposure The exposure the stars' brightness is calibrated for.
+   */
+  setExposure(exposure: number, starExposure = exposure): void {
+    (this.uniforms.moonSimExposure as Uniform<number>).value = exposure;
+    (this.uniforms.moonSimStarScale as Uniform<number>).value = starExposure / exposure;
+  }
+
+  /** Same light sources as the sky (see DisplaySkyMaterial). */
+  setLighting(
+    moon: { x: number; y: number; z: number },
+    moonScale: number,
+    sunScale: number,
+  ): void {
+    (this.uniforms.moonSimMoonDirection as Uniform<Vector3>).value.set(moon.x, moon.y, moon.z);
+    (this.uniforms.moonSimMoonScale as Uniform<number>).value = moonScale;
+    (this.uniforms.moonSimSunScale as Uniform<number>).value = sunScale;
   }
 
   override onBeforeCompile(p: WebGLProgramParametersWithUniforms, r: WebGLRenderer): void {
-    injectDisplay(p);
+    p.fragmentShader = p.fragmentShader
+      .replace(
+        'precision highp sampler3D;',
+        `precision highp sampler3D;\n${DISPLAY_GLSL}\nuniform vec3 moonSimMoonDirection;\nuniform float moonSimMoonScale;\nuniform float moonSimSunScale;\nuniform float moonSimStarScale;`,
+      )
+      .replace('#include <mrt_output>', `${STARS_GLSL}\n#include <mrt_output>`);
     super.onBeforeCompile(p, r);
   }
 }
