@@ -25,6 +25,8 @@ interface SimStore {
   faster: () => void;
   slower: () => void;
   toggleReverse: () => void;
+  /** Set play/pause, direction and speed step at once (e.g. "watch this eclipse"). */
+  setPlayback: (playback: Playback) => void;
   setTime: (time: Date) => void;
   /** Observer for the sky view, HUD rise/set times and local time. */
   location: ObserverLocation;
@@ -76,6 +78,9 @@ export const useSimStore = create<SimStore>()((set, get) => {
     },
     toggleReverse: () => {
       update(toggleReverse);
+    },
+    setPlayback: (playback) => {
+      update(() => playback);
     },
     setTime: (time) => {
       clock.setTime(time);

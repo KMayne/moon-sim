@@ -1,14 +1,23 @@
 import type { HorizonEvent } from '../astro/events';
 import { formatEvent, formatPercent } from './format';
+import { inProgressText } from './eclipseWatch';
 import type { HudSnapshot } from './hudModel';
 
 const timeOf = (e: HorizonEvent): number => (e.found ? e.timeMs : Infinity);
 
 /**
  * One line for the collapsed HUD, e.g. "Waxing Gibbous · 89.4% · rises Mon 13:08": phase, lit
- * fraction and whichever horizon event comes next (or why there isn't one).
+ * fraction and whichever horizon event comes next (or why there isn't one) — or, while the
+ * observer can see an eclipse, e.g. "Total lunar eclipse in progress".
  */
-export function hudSummary(snap: Pick<HudSnapshot, 'phase' | 'riseSet' | 'zone'>): string {
+export function hudSummary(
+  snap: Pick<HudSnapshot, 'phase' | 'riseSet' | 'zone'> & {
+    eclipses?: Pick<HudSnapshot['eclipses'], 'inProgress'>;
+  },
+): string {
+  // An eclipse happening now beats everything else.
+  const inProgress = snap.eclipses?.inProgress;
+  if (inProgress) return inProgressText(inProgress);
   const { rise, set } = snap.riseSet;
   const parts = [snap.phase.phaseName, formatPercent(snap.phase.illuminatedFraction)];
   if (rise.found || set.found) {
