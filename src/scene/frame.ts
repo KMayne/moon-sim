@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { DiscScene } from '../sim/discScene';
 import type { OrbitScene } from '../sim/orbitScene';
 import type { SkyScene } from '../sim/skyScene';
 
@@ -10,6 +11,7 @@ export interface Frame {
   simMs: number;
   orbit: OrbitScene;
   sky: SkyScene;
+  disc: DiscScene;
 }
 
 /** Mutable holder: written in the frame loop, read in the frame loop. Never React state. */

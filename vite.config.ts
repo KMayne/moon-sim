@@ -7,7 +7,7 @@ export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [react()],
   // Agent worktrees live under .claude/; watching or dep-scanning them reloads the dev page.
-  server: { watch: { ignored: ['**/.claude/**'] } },
+  server: { watch: { ignored: [`${import.meta.dirname}/.claude/worktrees/**`] } },
   optimizeDeps: { entries: ['index.html'] },
   test: {
     include: ['src/**/*.test.ts'],

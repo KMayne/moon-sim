@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import { useSimStore } from '../state/store';
 import {
   formatDays,
   formatDegrees,
@@ -9,26 +7,10 @@ import {
   formatUtc,
 } from './format';
 import styles from './Hud.module.css';
-import { createHudCaches, hudSnapshot, type HudSnapshot } from './hudModel';
+import type { HudSnapshot } from './hudModel';
 
-const HUD_INTERVAL_MS = 250;
-
-/** Moon and observer readouts, polled at a few Hz; never updated per frame. */
-export function Hud() {
-  const clock = useSimStore((s) => s.clock);
-  const location = useSimStore((s) => s.location);
-  const [caches] = useState(createHudCaches);
-  const [snap, setSnap] = useState<HudSnapshot>(() => hudSnapshot(clock.nowMs(), location, caches));
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setSnap(hudSnapshot(clock.nowMs(), location, caches));
-    }, HUD_INTERVAL_MS);
-    return () => {
-      clearInterval(id);
-    };
-  }, [clock, location, caches]);
-
+/** Moon and observer readouts for one snapshot (see useHudSnapshot). */
+export function Hud({ snap }: { snap: HudSnapshot }) {
   const rows: [string, string][] = [
     ['UTC', formatUtc(snap.simMs)],
     ['Local', formatLocal(snap.simMs, snap.zone)],

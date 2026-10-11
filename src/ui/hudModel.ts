@@ -5,6 +5,8 @@ import {
   type MoonPhaseInfo,
   type RiseSet,
 } from '../astro/events';
+import { computeSystemState } from '../astro/ephemeris';
+import { toSkyScene } from '../sim/skyScene';
 import type { ObserverLocation } from '../state/locations';
 import { zoneFor } from './format';
 
@@ -25,6 +27,8 @@ export interface HudSnapshot {
   readonly phase: MoonPhaseInfo;
   readonly ageDays: number;
   readonly riseSet: RiseSet;
+  /** Topocentric, unrefracted altitude of the Moon's centre, degrees. */
+  readonly moonAltitudeDeg: number;
 }
 
 /** Everything the HUD shows for one instant. Bounded cost: expensive searches are cached. */
@@ -40,5 +44,7 @@ export function hudSnapshot(
     phase: moonPhaseInfo(new Date(simMs)),
     ageDays: caches.age.ageDays(simMs),
     riseSet: caches.riseSet.next(location, simMs),
+    moonAltitudeDeg: toSkyScene(computeSystemState(new Date(simMs)), location, { moonSize: 1 }).moon
+      .altitude,
   };
 }
