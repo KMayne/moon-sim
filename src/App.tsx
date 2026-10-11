@@ -52,8 +52,8 @@ export function App() {
           <Hud snap={snap} />
           <Controls />
         </div>
-        <a className="sidebar__credit" href="https://kianmayne.co.uk/" title="kianmayne.co.uk">
-          by Kian Mayne
+        <a className="sidebar__credit" href="https://kianmayne.co.uk/">
+          KianMayne.co.uk
         </a>
       </aside>
     </div>
