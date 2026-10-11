@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { SimClock } from '../sim/clock';
+import { DEFAULT_LOCATION, type ObserverLocation } from './locations';
 
 /** Sim seconds per wall second. */
 export const DEFAULT_SPEED = 3600;
@@ -11,6 +12,9 @@ interface SimStore {
   speed: number;
   setSpeed: (speed: number) => void;
   setTime: (time: Date) => void;
+  /** Observer for the sky view, HUD rise/set times and local time. */
+  location: ObserverLocation;
+  setLocation: (location: ObserverLocation) => void;
 }
 
 export const useSimStore = create<SimStore>()((set) => {
@@ -31,6 +35,10 @@ export const useSimStore = create<SimStore>()((set) => {
     },
     setTime: (time) => {
       clock.setTime(time);
+    },
+    location: DEFAULT_LOCATION,
+    setLocation: (location) => {
+      set({ location });
     },
   };
 });
