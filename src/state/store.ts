@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { SimClock } from '../sim/clock';
+import { TRUE_SCALE, type VisualScale } from '../sim/visualScale';
 import { DEFAULT_LOCATION, type ObserverLocation } from './locations';
 
 /** Sim seconds per wall second. */
@@ -20,14 +21,7 @@ interface SimStore {
   setVisualScale: (scale: Partial<VisualScale>) => void;
 }
 
-export interface VisualScale {
-  /** Multiplies the Moon's rendered radius only. */
-  moonSize: number;
-  /** Multiplies the Moon's rendered distance from Earth only. */
-  moonDistance: number;
-}
-
-export const TRUE_SCALE: VisualScale = { moonSize: 1, moonDistance: 1 };
+export { TRUE_SCALE, type VisualScale };
 
 export const useSimStore = create<SimStore>()((set) => {
   const clock = new SimClock({

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSimStore } from '../state/store';
+import { ScaleBadge } from './ScaleBadge';
 import { isSpinAliased } from './speeds';
 
 const READOUT_INTERVAL_MS = 250;
@@ -25,6 +26,7 @@ export function TimeReadout() {
   return (
     <div className="time-readout">
       <div className="time-readout__time">{formatUtc(simMs)}</div>
+      <ScaleBadge />
       {isSpinAliased(speed) && (
         <div className="time-readout__notice">
           Earth's spin is too fast to show at this speed — what you see is strobing. Positions

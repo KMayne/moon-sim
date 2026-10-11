@@ -38,9 +38,9 @@ const FADE_COLORS: [number, number, number, number][] = (() => {
 const toPoints = (path: readonly Vec3[]): Points => path.map((p) => [p.x, p.y, p.z]);
 
 /**
- * The Moon's orbit over ±½ sidereal month, fading out at the ends. Samples are inertial (EQJ, km) and expensive, so they
- * are refreshed only occasionally; the cheap EQJ→scene rotation is applied every frame so the path
- * stays exactly aligned with the Sun-fixed frame and the Moon.
+ * The Moon's orbit over ±½ sidereal month, fading out at the ends. Samples are inertial (EQJ, km)
+ * and expensive, so they are refreshed only occasionally; the cheap EQJ→scene rotation and the
+ * distance visual aid are applied every frame so the path stays aligned with the Moon.
  */
 export function OrbitPath() {
   const frameRef = useFrameRef();
@@ -51,7 +51,11 @@ export function OrbitPath() {
   useFrame(() => {
     const frame = frameRef.current;
     if (!frame) return;
-    if (group.current) applyRotation(group.current, frame.orbit.eqjToScene);
+    if (group.current) {
+      applyRotation(group.current, frame.orbit.eqjToScene);
+      // Same distance visual aid as the Moon, so the Moon stays on its path.
+      group.current.scale.setScalar(KM_TO_SCENE * frame.orbit.visualScale.moonDistance);
+    }
 
     const wallMs = performance.now();
     const last = lastSample.current;
@@ -63,7 +67,7 @@ export function OrbitPath() {
   }, PRIORITY.update);
 
   return (
-    <group ref={group} scale={KM_TO_SCENE}>
+    <group ref={group}>
       {points && <Line points={points} vertexColors={FADE_COLORS} lineWidth={1} transparent />}
     </group>
   );

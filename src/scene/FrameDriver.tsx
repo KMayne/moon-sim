@@ -12,7 +12,7 @@ export function FrameDriver() {
   useFrame(() => {
     const simMs = clock.nowMs();
     const state = computeSystemState(new Date(simMs));
-    frameRef.current = { simMs, orbit: toOrbitScene(state) };
+    frameRef.current = { simMs, orbit: toOrbitScene(state, useSimStore.getState().visualScale) };
   }, PRIORITY.driver);
 
   return null;
