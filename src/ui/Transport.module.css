@@ -2,7 +2,8 @@
   position: absolute;
   z-index: 2;
   bottom: 16px;
-  left: 50%;
+  /* Centred in the space the docked Moon disc leaves free (0 when it's closed). */
+  left: calc((100% - var(--moon-disc-width, 0px)) / 2);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
