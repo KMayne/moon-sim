@@ -62,16 +62,31 @@ export function App() {
           <Divider />
           <Controls />
         </div>
-        <a
-          className="sidebar__credit"
-          href="https://kianmayne.co.uk/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          KianMayne.co.uk
-          <ArrowUpRight size={12} aria-hidden />
-          <span className="visually-hidden"> (opens in a new tab)</span>
-        </a>
+        <footer className="sidebar__footer">
+          <a
+            className="sidebar__credit"
+            href="https://github.com/KMayne/moon-sim"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+            <ArrowUpRight size={12} aria-hidden />
+            <span className="visually-hidden"> (opens in a new tab)</span>
+          </a>
+          <span className="sidebar__sep" aria-hidden>
+            &middot;
+          </span>
+          <a
+            className="sidebar__credit"
+            href="https://kianmayne.co.uk/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            KianMayne.co.uk
+            <ArrowUpRight size={12} aria-hidden />
+            <span className="visually-hidden"> (opens in a new tab)</span>
+          </a>
+        </footer>
       </aside>
     </div>
   );

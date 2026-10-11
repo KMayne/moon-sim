@@ -68,6 +68,13 @@ body,
   border-left: 1px solid #1b2030;
 }
 
+.sidebar__footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px solid #1b2030;
+}
+
 .sidebar__credit {
   display: flex;
   align-items: center;
@@ -76,7 +83,11 @@ body,
   font-size: 12px;
   color: #6b7390;
   text-decoration: none;
-  border-top: 1px solid #1b2030;
+}
+
+.sidebar__sep {
+  font-size: 12px;
+  color: #6b7390;
 }
 
 .sidebar__credit:hover,
