@@ -1,0 +1,43 @@
+.hud {
+  padding: 12px 14px 16px;
+  border-top: 1px solid #1b2030;
+  font-size: 12px;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.where {
+  font-weight: 400;
+  color: #8e96ad;
+}
+
+.rows {
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.row dt {
+  color: #8e96ad;
+}
+
+.row dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #6b7390;
+}
