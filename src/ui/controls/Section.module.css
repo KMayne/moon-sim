@@ -1,0 +1,30 @@
+.header {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+}
+
+.header:hover {
+  background: var(--mantine-color-dark-6);
+}
+
+.header:focus-visible {
+  outline: 2px solid var(--mantine-color-blue-5);
+  outline-offset: -2px;
+}
+
+.chevron {
+  flex: none;
+  color: var(--mantine-color-dimmed);
+  transition: transform 150ms ease;
+}
+
+.chevron[data-open] {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}

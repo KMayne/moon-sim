@@ -40,12 +40,14 @@ export function App() {
       </ErrorBoundary>
       <main className="views">
         <OrbitView className="view view--orbit" />
-        <SkyView className="view view--sky" />
+        <div className="view-cell">
+          <SkyView className="view view--sky" />
+          <MoonDiscPanel snap={snap} />
+        </div>
         <TimeReadout />
         <Transport />
       </main>
       <aside className="sidebar">
-        <MoonDiscPanel snap={snap} />
         <div className="sidebar__scroll">
           <Hud snap={snap} />
           <Controls />

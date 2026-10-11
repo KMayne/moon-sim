@@ -8,7 +8,7 @@ export function FlairSection() {
   const setAuroraEnabled = useSimStore((s) => s.setAuroraEnabled);
 
   return (
-    <Section title="Flair — not simulated">
+    <Section id="flair" title="Flair — not simulated">
       <Switch
         label="Aurora (cosmetic)"
         checked={auroraEnabled}

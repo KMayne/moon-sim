@@ -24,7 +24,7 @@ export function VisualAidsSection() {
   const setVisualScale = useSimStore((s) => s.setVisualScale);
 
   return (
-    <Section title="Visual aids — not true scale">
+    <Section id="visual-aids" title="Visual aids — not true scale" defaultOpen>
       <Input.Wrapper label="Body size" description="Earth, Moon and Sun, in both views">
         <Slider
           mt={6}

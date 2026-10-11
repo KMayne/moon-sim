@@ -24,7 +24,7 @@ export function ObserverSection() {
   const setLocation = useSimStore((s) => s.setLocation);
 
   return (
-    <Section title="Observer">
+    <Section id="observer" title="Observer">
       <PlaceSearch />
       <Select
         label="Location"

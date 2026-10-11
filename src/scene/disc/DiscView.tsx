@@ -70,7 +70,8 @@ export function DiscView({ className }: { className: string }) {
   );
 
   return (
-    <View className={className}>
+    // index > the sky view's (1): the disc is an inset drawn over the sky view.
+    <View className={className} index={3}>
       <color attach="background" args={['#05060a']} />
       <OrthographicCamera
         makeDefault
