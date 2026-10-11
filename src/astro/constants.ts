@@ -9,6 +9,9 @@ export const MOON_RADIUS_KM = 1737.4;
 /** Mean synodic month (new moon to new moon), days. */
 export const MEAN_SYNODIC_MONTH_DAYS = 29.530588;
 
+/** Mean sidereal month (Moon's orbit relative to the stars), days. */
+export const MEAN_SIDEREAL_MONTH_DAYS = 27.321662;
+
 /** Mean sidereal rotations of Earth per mean solar day. */
 export const SIDEREAL_ROTATIONS_PER_SOLAR_DAY = 1.00273781191135;
 

@@ -1,10 +1,18 @@
-import { Quaternion, Vector3 } from 'three';
+import { useTexture } from '@react-three/drei';
+import { Suspense } from 'react';
+import { Quaternion, SRGBColorSpace, Vector3 } from 'three';
+import { ErrorBoundary } from '../../ErrorBoundary';
 import type { OrbitScene } from '../../sim/orbitScene';
 import { GREENWICH_POINT, NEAR_SIDE_POINT } from '../bodyLocal';
 import { OrbitBody } from './OrbitBody';
 
 const selectEarth = (o: OrbitScene) => o.earth;
 const selectMoon = (o: OrbitScene) => o.moon;
+
+const TEXTURES = {
+  earth: `${import.meta.env.BASE_URL}textures/earth_bluemarble_4k.jpg`,
+  moon: `${import.meta.env.BASE_URL}textures/moon_svs_4k.jpg`,
+};
 
 const UP = new Vector3(0, 1, 0);
 
@@ -33,7 +41,7 @@ function SurfaceSpike({ at, length, color }: SurfaceSpikeProps) {
   );
 }
 
-/** Lat/long grid slightly above the surface, so spin is visible before textures exist. */
+/** Lat/long grid slightly above the surface, so spin is visible without a texture. */
 function Graticule({ color }: { color: string }) {
   return (
     <mesh scale={1.002}>
@@ -43,14 +51,61 @@ function Graticule({ color }: { color: string }) {
   );
 }
 
+interface SurfaceProps {
+  url: string;
+  roughness: number;
+}
+
+/**
+ * Equirectangular map on a unit sphere. three's SphereGeometry UVs put lon 0 at the local +x axis,
+ * matching our body-frame convention (verified in textureMapping.test.ts).
+ */
+function TexturedSurface({ url, roughness }: SurfaceProps) {
+  const map = useTexture(url, (t) => {
+    t.colorSpace = SRGBColorSpace;
+    t.anisotropy = 8;
+  });
+  return (
+    <mesh>
+      <sphereGeometry args={[1, 96, 48]} />
+      <meshStandardMaterial map={map} roughness={roughness} metalness={0} />
+    </mesh>
+  );
+}
+
+interface PlainProps {
+  color: string;
+  gridColor: string;
+}
+
+/** Plain sphere plus grid: shown while the texture loads, or instead of it if loading fails. */
+function PlainSurface({ color, gridColor }: PlainProps) {
+  return (
+    <>
+      <mesh>
+        <sphereGeometry args={[1, 64, 32]} />
+        <meshStandardMaterial color={color} roughness={1} metalness={0} />
+      </mesh>
+      <Graticule color={gridColor} />
+    </>
+  );
+}
+
+function Surface({ url, roughness, ...plain }: SurfaceProps & PlainProps) {
+  const fallback = <PlainSurface {...plain} />;
+  return (
+    <ErrorBoundary fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <TexturedSurface url={url} roughness={roughness} />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
 export function Earth() {
   return (
     <OrbitBody select={selectEarth}>
-      <mesh>
-        <sphereGeometry args={[1, 64, 32]} />
-        <meshStandardMaterial color="#2a5d9f" roughness={0.9} />
-      </mesh>
-      <Graticule color="#9fc3ff" />
+      <Surface url={TEXTURES.earth} roughness={0.9} color="#2a5d9f" gridColor="#9fc3ff" />
       <SurfaceSpike at={GREENWICH_POINT} length={0.25} color="#ffd34d" />
     </OrbitBody>
   );
@@ -59,11 +114,7 @@ export function Earth() {
 export function Moon() {
   return (
     <OrbitBody select={selectMoon}>
-      <mesh>
-        <sphereGeometry args={[1, 48, 24]} />
-        <meshStandardMaterial color="#9a9a9a" roughness={1} />
-      </mesh>
-      <Graticule color="#dddddd" />
+      <Surface url={TEXTURES.moon} roughness={1} color="#9a9a9a" gridColor="#dddddd" />
       <SurfaceSpike at={NEAR_SIDE_POINT} length={0.6} color="#ff4d4d" />
     </OrbitBody>
   );

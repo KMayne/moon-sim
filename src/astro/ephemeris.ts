@@ -17,13 +17,16 @@ export interface SystemState {
   readonly moonOrientation: Mat3;
 }
 
+/** Geocentric Moon position in EQJ, km. */
+export const moonPositionKm = (time: Date): Vec3 => scale(fromAstro(GeoMoon(time)), KM_PER_AU);
+
 /** Pure function of time: no caching, no accumulation. */
 export function computeSystemState(time: Date): SystemState {
   return {
     time,
     // Apparent direction (with aberration), as an observer on Earth would see it.
     sun: scale(fromAstro(GeoVector(Body.Sun, time, true)), KM_PER_AU),
-    moon: scale(fromAstro(GeoMoon(time)), KM_PER_AU),
+    moon: moonPositionKm(time),
     earthOrientation: bodyOrientation(RotationAxis(Body.Earth, time)),
     moonOrientation: bodyOrientation(RotationAxis(Body.Moon, time)),
   };
