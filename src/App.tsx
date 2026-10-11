@@ -2,6 +2,7 @@ import { Divider } from '@mantine/core';
 import { ArrowUpRight } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
+import { ECLIPSES_ENABLED } from './features';
 import { OrbitView } from './scene/orbit/OrbitView';
 import { SkyView } from './scene/sky/SkyView';
 import { SimulationCanvas } from './scene/SimulationCanvas';
@@ -57,8 +58,12 @@ export function App() {
       <aside className="sidebar">
         <div className="sidebar__scroll">
           <Hud snap={snap} />
-          <Divider />
-          <EclipsesSection snap={snap} />
+          {ECLIPSES_ENABLED && (
+            <>
+              <Divider />
+              <EclipsesSection snap={snap} />
+            </>
+          )}
           <Divider />
           <Controls />
         </div>

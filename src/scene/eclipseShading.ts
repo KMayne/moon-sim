@@ -1,6 +1,7 @@
 import { Vector3, type MeshStandardMaterial, type WebGLProgramParametersWithUniforms } from 'three';
 import { EARTH_RADIUS_KM } from '../astro/constants';
 import type { EclipseGeometry } from '../sim/eclipse';
+import { ECLIPSES_ENABLED } from '../features';
 import { ECLIPSE_GLSL } from '../sim/eclipseGlsl';
 
 /**
@@ -41,18 +42,21 @@ export function updateEclipseUniforms(
  * Using the normal (not the rendered position) keeps the shadow true even when the Moon is drawn
  * enlarged or moved closer by the visual aids.
  */
+// With eclipses off (features.ts) both lights are full sunlight.
 export const ECLIPSE_FRAGMENT_UNIFORMS = /* glsl */ `
 uniform vec3 moonSimMoonCenterKm;
 uniform vec3 moonSimSunKm;
 uniform float moonSimEclipseGain;
 ${ECLIPSE_GLSL}
 vec3 moonSimEclipseLightForNormal(vec3 n) {
+  ${ECLIPSES_ENABLED ? '' : 'return vec3(1.0);'}
   vec3 p = moonSimMoonCenterKm + MOON_SIM_MOON_RADIUS_KM * normalize(n);
   return moonSimLunarEclipseLight(p, moonSimSunKm) * moonSimEclipseGain;
 }
 // Earth (at the origin) under the Moon's shadow: the visible part of the Sun's disc at the true
 // surface point under world normal n — the umbra (or annular antumbra) and penumbra of a solar eclipse.
 vec3 moonSimSolarEclipseLightForNormal(vec3 n) {
+  ${ECLIPSES_ENABLED ? '' : 'return vec3(1.0);'}
   vec3 p = ${String(EARTH_RADIUS_KM)} * normalize(n);
   return vec3(moonSimVisibleSolarFraction(
     p, moonSimSunKm, MOON_SIM_SUN_RADIUS_KM, moonSimMoonCenterKm, MOON_SIM_MOON_RADIUS_KM

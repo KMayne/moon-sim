@@ -1,4 +1,5 @@
 import { OrbitControls, PerspectiveCamera, View } from '@react-three/drei';
+import { ECLIPSES_ENABLED } from '../../features';
 import type { OrbitScene } from '../../sim/orbitScene';
 import { BodyMarker } from '../markers/BodyMarker';
 import { Earth, Moon } from './bodies';
@@ -40,7 +41,7 @@ export function OrbitView({ className }: { className: string }) {
 
       <Earth />
       <Moon />
-      <EarthShadow />
+      {ECLIPSES_ENABLED && <EarthShadow />}
       <OrbitPath />
 
       <BodyMarker select={selectEarth} label="Earth" color="#9fc3ff" />

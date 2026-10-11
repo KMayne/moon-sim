@@ -11,7 +11,7 @@ import {
 } from '../astro/observer';
 import { length, mul, mulVec, normalize, transpose, type Mat3, type Vec3 } from '../astro/vec';
 import { vecToThree, Z_UP_TO_THREE } from './axes';
-import { lunarEclipseIllumination, type LunarEclipseIllumination } from './eclipse';
+import { lunarEclipseIllumination, NO_ECLIPSE, type LunarEclipseIllumination } from './eclipse';
 import { lunarToSolarRatio, moonlightOnGround } from './moonlight';
 import { observerSolarFraction } from './solarEclipse';
 
@@ -60,10 +60,15 @@ export interface SkyVisualAids {
   readonly bodySize: number;
 }
 
+/**
+ * @param eclipses false treats every instant as eclipse-free: the Moon in Earth's shadow keeps its
+ *   full light and the Sun counts as fully visible (see features.ts).
+ */
 export function toSkyScene(
   state: SystemState,
   observer: Geodetic,
   { bodySize }: SkyVisualAids,
+  { eclipses = true }: { eclipses?: boolean } = {},
 ): SkyScene {
   const eqjToHor = eqjToHorizon(state.earthOrientation, observer);
   const eqjToSky = mul(Z_UP_TO_THREE, eqjToHor);
@@ -75,7 +80,7 @@ export function toSkyScene(
   const moonHor = mulVec(eqjToHor, moonTopo);
   const moon = altAz(moonHor);
   // Magnitudes don't know about eclipses: dim moonlight by how much of the Moon is in Earth's shadow.
-  const eclipseIllumination = lunarEclipseIllumination(state);
+  const eclipseIllumination = eclipses ? lunarEclipseIllumination(state) : NO_ECLIPSE;
   const lunarToSolar = lunarToSolarRatio(state.time) * eclipseIllumination.mean;
 
   return {
@@ -90,7 +95,7 @@ export function toSkyScene(
     lunarToSolar,
     moonlightOnGround: moonlightOnGround(lunarToSolar, moon.altitude),
     eclipseIllumination,
-    solarVisibleFraction: observerSolarFraction(state, observer),
+    solarVisibleFraction: eclipses ? observerSolarFraction(state, observer) : 1,
     moon,
     moonAngularRadius: Math.asin(MOON_RADIUS_KM / length(moonTopo)) * bodySize,
     sunAngularRadius: Math.asin(SUN_RADIUS_KM / length(sunTopo)) * bodySize,
