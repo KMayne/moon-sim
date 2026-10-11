@@ -48,10 +48,11 @@ export function App() {
   useUrlSync();
   const snap = useHudSnapshot();
   const discInRow = useMediaMatch(PORTRAIT_PHONE_QUERY);
-  // Only honoured on phones, where the time controls carry the toggle; see index.css.
+  // Only honoured on phones, where the time controls carry the toggle; see index.css. Hidden by
+  // default so a phone opens on the views.
   const [settingsHidden, setSettingsHidden] = usePersistentFlag(
     'moon-sim:panel:settings-hidden',
-    false,
+    true,
   );
 
   return (
