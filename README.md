@@ -9,12 +9,12 @@ accumulated per frame — so true rate ratios hold at any playback speed.
 Requires Node 26 (`nvm use`).
 
 ```sh
-npm install
-npm run dev        # local dev server
-npm test           # Vitest (astronomy + acceptance checks)
-npm run lint       # ESLint, including layering rules
-npm run typecheck
-npm run build
+pnpm install
+pnpm run dev        # local dev server
+pnpm test           # Vitest (astronomy + acceptance checks)
+pnpm run lint       # ESLint, including layering rules
+pnpm run typecheck
+pnpm run build
 ```
 
 ## Layout
@@ -35,7 +35,7 @@ Hosted at kianmayne.co.uk/moon-sim/ on DigitalOcean App Platform (the app spec l
 kianmayne.co.uk repo). Production builds need the subpath:
 
 ```sh
-BASE_PATH=/moon-sim/ npm run build
+BASE_PATH=/moon-sim/ pnpm run build
 ```
 
 ## Credits
