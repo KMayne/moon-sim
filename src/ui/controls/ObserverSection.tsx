@@ -8,6 +8,7 @@ import {
 import { useSimStore } from '../../state/store';
 import { PlaceSearch } from './PlaceSearch';
 import { Section } from './Section';
+import { UseMyLocation } from './UseMyLocation';
 
 const isPresetId = (id: string): id is LocationPresetId => id in LOCATION_PRESETS;
 
@@ -25,6 +26,7 @@ export function ObserverSection() {
 
   return (
     <Section id="observer" title="Observer">
+      <UseMyLocation />
       <PlaceSearch />
       <Select
         label="Location"
