@@ -4,7 +4,8 @@ import { PrecomputedTexturesLoader, StarsGeometry } from '@takram/three-atmosphe
 import { useEffect, useMemo, useRef } from 'react';
 import { FileLoader, type Points } from 'three';
 import { NIGHT_FLOOR_MAX, nightFloorWeight } from '../../sim/groundLight';
-import { skyExposure } from '../../sim/skyExposure';
+import { moonSkyLightScale, sunSkyLightScale } from '../../sim/moonlight';
+import { skyExposure, starExposure } from '../../sim/skyExposure';
 import { applyRotation } from '../applyTransform';
 import { PRIORITY, useFrameRef } from '../frame';
 import { DisplaySkyMaterial, DisplayStarsMaterial } from './atmosphereMaterials';
@@ -53,12 +54,29 @@ export function Atmosphere() {
   useFrame(() => {
     const frame = frameRef.current;
     if (!frame) return;
-    const { sunDirectionEcef: sun, skyToEcef, observerEcefM, eqjToSky } = frame.sky;
-    const exposure = skyExposure(frame.sky.sun.altitude);
-    const floor = nightFloorWeight(frame.sky.sun.altitude);
+    const {
+      sunDirectionEcef: sun,
+      moonDirectionEcef: moon,
+      skyToEcef,
+      observerEcefM,
+      eqjToSky,
+    } = frame.sky;
+    const sunAltitude = frame.sky.sun.altitude;
+    const exposure = skyExposure(sunAltitude, frame.sky.moonlightOnGround);
+    const floor = nightFloorWeight(sunAltitude);
     sky.setSkyFloor(NIGHT_FLOOR_MAX.skyHorizon * floor, NIGHT_FLOOR_MAX.skyZenith * floor);
+    const moonScale = moonSkyLightScale(
+      frame.sky.lunarToSolar,
+      frame.sky.moon.altitude,
+      sunAltitude,
+    );
+    const sunScale = sunSkyLightScale(sunAltitude);
+    sky.setMoonlight(moon.x, moon.y, moon.z, moonScale);
+    sky.setSunScale(sunScale);
+    sky.setExposure(exposure);
+    starsMaterial.setLighting(moon, moonScale, sunScale);
+    starsMaterial.setExposure(exposure, starExposure(exposure));
     for (const material of [sky, starsMaterial]) {
-      material.exposure = exposure;
       material.sunDirection.set(sun.x, sun.y, sun.z);
       setWorldToEcef(material.worldToECEFMatrix, skyToEcef, observerEcefM);
     }
