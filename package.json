@@ -1,0 +1,48 @@
+{
+  "name": "moon-sim",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@photostructure/tz-lookup": "11.7.0",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.1",
+    "astronomy-engine": "2.1.19",
+    "leva": "0.10.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "three": "0.186.1",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
+  }
+}
