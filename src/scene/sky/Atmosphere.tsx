@@ -2,26 +2,16 @@ import { ScreenQuad } from '@react-three/drei';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { PrecomputedTexturesLoader, StarsGeometry } from '@takram/three-atmosphere';
 import { useEffect, useMemo, useRef } from 'react';
-import { FileLoader, Matrix4, type Points } from 'three';
-import type { Mat3, Vec3 } from '../../astro/vec';
+import { FileLoader, type Points } from 'three';
+import { NIGHT_FLOOR_MAX, nightFloorWeight } from '../../sim/groundLight';
 import { skyExposure } from '../../sim/skyExposure';
 import { applyRotation } from '../applyTransform';
 import { PRIORITY, useFrameRef } from '../frame';
 import { DisplaySkyMaterial, DisplayStarsMaterial } from './atmosphereMaterials';
 import { SKY_RENDER_ORDER } from './renderOrder';
+import { setWorldToEcef } from './worldToEcef';
 
 const ASSETS = `${import.meta.env.BASE_URL}atmosphere/`;
-
-/** Sky world → ECEF (metres), as takram's `worldToECEFMatrix`. */
-function setWorldToEcef(target: Matrix4, skyToEcef: Mat3, observerEcefM: Vec3): void {
-  const m = skyToEcef;
-  target.set(
-    m[0][0], m[0][1], m[0][2], observerEcefM.x,
-    m[1][0], m[1][1], m[1][2], observerEcefM.y,
-    m[2][0], m[2][1], m[2][2], observerEcefM.z,
-    0, 0, 0, 1,
-  ); // prettier-ignore
-}
 
 class ArrayBufferFileLoader extends FileLoader {
   constructor() {
@@ -65,6 +55,8 @@ export function Atmosphere() {
     if (!frame) return;
     const { sunDirectionEcef: sun, skyToEcef, observerEcefM, eqjToSky } = frame.sky;
     const exposure = skyExposure(frame.sky.sun.altitude);
+    const floor = nightFloorWeight(frame.sky.sun.altitude);
+    sky.setSkyFloor(NIGHT_FLOOR_MAX.skyHorizon * floor, NIGHT_FLOOR_MAX.skyZenith * floor);
     for (const material of [sky, starsMaterial]) {
       material.exposure = exposure;
       material.sunDirection.set(sun.x, sun.y, sun.z);

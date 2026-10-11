@@ -1,14 +1,16 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { CanvasTexture, SRGBColorSpace, type DirectionalLight } from 'three';
+import { NIGHT_FLOOR_MAX, nightFloorWeight } from '../../sim/groundLight';
 import { PRIORITY, useFrameRef } from '../frame';
+import { GroundMaterial } from './groundMaterial';
 import { SKY_RENDER_ORDER } from './renderOrder';
 
 const GROUND_RADIUS = 50_000;
 /** Eye height above the flat ground, in sky-view units (metres to the atmosphere). */
 const EYE_HEIGHT = 2;
 
-/** Sunlight for the Moon and ground. Direction only: it follows the true Sun every frame. */
+/** Sunlight for the Moon. Direction only: it follows the true Sun every frame. */
 export function SkySunLight() {
   const frameRef = useFrameRef();
   const light = useRef<DirectionalLight>(null);
@@ -21,12 +23,31 @@ export function SkySunLight() {
   return <directionalLight ref={light} intensity={2.5} />;
 }
 
-/** Flat dark ground: the point of this view is the sky, not the landscape. */
+/**
+ * Flat generic ground. Its lighting comes from the atmosphere (see groundMaterial.ts); this mesh adds
+ * occlusion, texture and the display-only night floor that keeps the horizon legible.
+ */
 export function Ground() {
+  const material = useMemo(() => new GroundMaterial(EYE_HEIGHT), []);
+  useEffect(
+    () => () => {
+      material.dispose();
+    },
+    [material],
+  );
+
+  const frameRef = useFrameRef();
+  useFrame(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const w = nightFloorWeight(frame.sky.sun.altitude);
+    material.setFloor(NIGHT_FLOOR_MAX.ground * w, NIGHT_FLOOR_MAX.groundHorizon * w);
+  }, PRIORITY.update);
+
   return (
     <mesh rotation-x={-Math.PI / 2} position-y={-EYE_HEIGHT} renderOrder={SKY_RENDER_ORDER.ground}>
       <circleGeometry args={[GROUND_RADIUS, 96]} />
-      <meshLambertMaterial color="#141519" />
+      <primitive object={material} attach="material" />
     </mesh>
   );
 }
