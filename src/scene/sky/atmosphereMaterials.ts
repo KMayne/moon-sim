@@ -1,5 +1,12 @@
 import { SkyMaterial, StarsMaterial } from '@takram/three-atmosphere';
-import { Uniform, type WebGLProgramParametersWithUniforms, type WebGLRenderer } from 'three';
+import {
+  Color,
+  Uniform,
+  Vector2,
+  type WebGLProgramParametersWithUniforms,
+  type WebGLRenderer,
+} from 'three';
+import { GROUND_ALBEDO } from '../../sim/groundLight';
 import { STAR_INTENSITY } from '../../sim/skyExposure';
 
 /**
@@ -46,28 +53,61 @@ vec3 moonSimDisplay(vec3 radiance) {
 }
 `;
 
-function injectDisplay(parameters: WebGLProgramParametersWithUniforms): void {
+function injectDisplay(parameters: WebGLProgramParametersWithUniforms, after = ''): void {
   parameters.fragmentShader = parameters.fragmentShader
     .replace('precision highp sampler3D;', `precision highp sampler3D;\n${DISPLAY_GLSL}`)
     .replace(
       '#include <mrt_output>',
-      'outputColor.rgb = moonSimDisplay(outputColor.rgb);\n#include <mrt_output>',
+      `outputColor.rgb = moonSimDisplay(outputColor.rgb);\n${after}\n#include <mrt_output>`,
     );
 }
 
+/**
+ * Display-only night floor for the sky (see sim/groundLight.ts): added after tone mapping, above the
+ * horizon only, brighter toward the horizon. `rayDirection` and `cameraPosition` (planet-centred)
+ * are locals of takram's sky.frag main().
+ */
+const SKY_FLOOR_GLSL = /* glsl */ `
+{
+  float moonSimElevation = dot(rayDirection, normalize(cameraPosition));
+  if (moonSimElevation >= 0.0) {
+    outputColor.rgb += mix(
+      moonSimSkyFloor.x,
+      moonSimSkyFloor.y,
+      smoothstep(0.0, 0.35, moonSimElevation)
+    );
+  }
+}
+`;
+
 export class DisplaySkyMaterial extends SkyMaterial {
   constructor() {
-    // Our own textured, correctly phased Moon replaces takram's plain disc.
-    super({ moon: false });
+    // Our own textured, correctly phased Moon replaces takram's plain disc. A non-zero ground
+    // albedo makes takram render the ground with the Bruneton sun + sky irradiance term and aerial
+    // perspective, through the same exposure and tone mapping as the sky.
+    super({
+      moon: false,
+      groundAlbedo: new Color(GROUND_ALBEDO.x, GROUND_ALBEDO.y, GROUND_ALBEDO.z),
+    });
     this.uniforms.moonSimExposure = new Uniform(INITIAL_EXPOSURE);
+    this.uniforms.moonSimSkyFloor = new Uniform(new Vector2(0, 0));
   }
 
   set exposure(value: number) {
     (this.uniforms.moonSimExposure as Uniform<number>).value = value;
   }
 
+  /** Night floor in display units: at the horizon and at the zenith. */
+  setSkyFloor(horizon: number, zenith: number): void {
+    (this.uniforms.moonSimSkyFloor as Uniform<Vector2>).value.set(horizon, zenith);
+  }
+
   override onBeforeCompile(p: WebGLProgramParametersWithUniforms, r: WebGLRenderer): void {
-    injectDisplay(p);
+    p.fragmentShader = p.fragmentShader.replace(
+      'precision highp sampler3D;',
+      'precision highp sampler3D;\nuniform vec2 moonSimSkyFloor;',
+    );
+    injectDisplay(p, SKY_FLOOR_GLSL);
     super.onBeforeCompile(p, r);
   }
 }
