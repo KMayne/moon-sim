@@ -5,6 +5,7 @@ import type {
   LunarEclipse,
 } from '../astro/eclipses';
 import { SPEED_STEPS, type Playback } from '../sim/playback';
+import { customLocation, type ObserverLocation } from '../state/locations';
 
 const MIN = 60_000;
 
@@ -35,6 +36,15 @@ export const watchLocalSolar = (e: LocalSolarEclipse): WatchPlan => plan(e.start
 
 /** The shadow is on Earth for a few hours around greatest eclipse; start well before it. */
 export const watchGlobalSolar = (e: GlobalSolarEclipse): WatchPlan => plan(e.peakMs - 90 * MIN);
+
+/**
+ * Where to stand to see it best: the point of greatest eclipse, under the middle of the path.
+ * Undefined when astronomy-engine gives no point (the shadow's axis misses Earth, near a pole).
+ */
+export const greatestEclipseLocation = (e: GlobalSolarEclipse): ObserverLocation | undefined =>
+  e.latitude !== undefined && e.longitude !== undefined
+    ? customLocation(e.latitude, e.longitude, 'Greatest eclipse')
+    : undefined;
 
 const capitalise = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 

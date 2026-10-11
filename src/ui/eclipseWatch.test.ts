@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { LunarEclipse } from '../astro/eclipses';
 import { playbackSpeed } from '../sim/playback';
-import { formatLatLon, inProgressText, watchLunar } from './eclipseWatch';
+import type { GlobalSolarEclipse } from '../astro/eclipses';
+import { formatLatLon, greatestEclipseLocation, inProgressText, watchLunar } from './eclipseWatch';
 
 const MIN = 60_000;
 const peak = Date.UTC(2026, 2, 3, 11, 33);
@@ -42,5 +43,18 @@ describe('eclipse watching', () => {
     expect(inProgressText({ body: 'moon', stage: 'total', eclipse: total })).toBe(
       'Total lunar eclipse in progress',
     );
+  });
+
+  it('watches a solar eclipse from its point of greatest eclipse, when there is one', () => {
+    const e = {
+      kind: 'total',
+      peakMs: peak,
+      latitude: 65.2,
+      longitude: -25.2,
+    } as GlobalSolarEclipse;
+    const there = greatestEclipseLocation(e);
+    expect(there?.latitude).toBe(65.2);
+    expect(there?.longitude).toBeCloseTo(-25.2, 9);
+    expect(greatestEclipseLocation({ kind: 'total', peakMs: peak })).toBeUndefined();
   });
 });

@@ -1,7 +1,9 @@
-import { Button } from '@mantine/core';
+import { Button, Group } from '@mantine/core';
+import type { ObserverLocation } from '../state/locations';
 import { useSimStore } from '../state/store';
 import {
   formatLatLon,
+  greatestEclipseLocation,
   lunarTitle,
   solarTitle,
   watchGlobalSolar,
@@ -25,11 +27,14 @@ interface ItemProps {
   when: string;
   note: string;
   watch: WatchPlan;
+  /** Adds a "Watch there" button that moves the observer here first. */
+  watchFrom?: ObserverLocation | undefined;
 }
 
-function EclipseItem({ heading, title, when, note, watch }: ItemProps) {
+function EclipseItem({ heading, title, when, note, watch, watchFrom }: ItemProps) {
   const setTime = useSimStore((s) => s.setTime);
   const setPlayback = useSimStore((s) => s.setPlayback);
+  const setLocation = useSimStore((s) => s.setLocation);
   return (
     <li className={styles.eclipse}>
       <div className={styles.eclipseText}>
@@ -38,17 +43,33 @@ function EclipseItem({ heading, title, when, note, watch }: ItemProps) {
         <span className={styles.eclipseWhen}>{when}</span>
         <span className={styles.eclipseNote}>{note}</span>
       </div>
-      <Button
-        variant="light"
-        size="compact-xs"
-        onClick={() => {
-          setTime(new Date(watch.timeMs));
-          setPlayback(watch.playback);
-        }}
-        title="Jump to just before it starts and play at 10 min/s"
-      >
-        Watch
-      </Button>
+      <Group gap={4} wrap="nowrap">
+        <Button
+          variant="light"
+          size="compact-xs"
+          onClick={() => {
+            setTime(new Date(watch.timeMs));
+            setPlayback(watch.playback);
+          }}
+          title="Jump to just before it starts and play at 10 min/s"
+        >
+          Watch
+        </Button>
+        {watchFrom && (
+          <Button
+            variant="light"
+            size="compact-xs"
+            onClick={() => {
+              setLocation(watchFrom);
+              setTime(new Date(watch.timeMs));
+              setPlayback(watch.playback);
+            }}
+            title="Move to where it's greatest, then watch it from there"
+          >
+            Watch there
+          </Button>
+        )}
+      </Group>
     </li>
   );
 }
@@ -86,6 +107,7 @@ export function EclipseList({ eclipses, zone }: { eclipses: HudEclipses; zone: s
             : 'greatest eclipse near a pole'
         }
         watch={watchGlobalSolar(globalSolar)}
+        watchFrom={greatestEclipseLocation(globalSolar)}
       />
     </ul>
   );
