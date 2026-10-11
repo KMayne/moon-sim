@@ -4,6 +4,7 @@ import { OrbitView } from './scene/orbit/OrbitView';
 import { SimulationCanvas } from './scene/SimulationCanvas';
 import { useSimStore } from './state/store';
 import { Controls } from './ui/Controls';
+import { Hud } from './ui/Hud';
 import { TimeReadout } from './ui/TimeReadout';
 
 /** Hidden tabs don't advance sim time, so returning to a tab never lands years later. */
@@ -35,6 +36,7 @@ export function App() {
       </main>
       <aside className="sidebar">
         <Controls />
+        <Hud />
       </aside>
     </div>
   );
