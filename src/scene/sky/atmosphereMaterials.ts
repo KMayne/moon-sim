@@ -1,4 +1,4 @@
-import { SkyMaterial, StarsMaterial } from '@takram/three-atmosphere';
+import { AtmosphereParameters, SkyMaterial, StarsMaterial } from '@takram/three-atmosphere';
 import {
   AdditiveBlending,
   Color,
@@ -9,6 +9,7 @@ import {
   type WebGLRenderer,
 } from 'three';
 import { GROUND_ALBEDO } from '../../sim/groundLight';
+import { MESOPIC_GLSL } from '../../sim/mesopic';
 import { STAR_INTENSITY } from '../../sim/skyExposure';
 
 /**
@@ -22,8 +23,18 @@ import { STAR_INTENSITY } from '../../sim/skyExposure';
 /** Initial exposure; updated every frame from sim/skyExposure.ts. */
 const INITIAL_EXPOSURE = 10;
 
+/**
+ * takram outputs luminance relative to that of unit-radiance sunlight; this converts it to cd/m²,
+ * which the low-light perception model (sim/mesopic.ts) needs.
+ */
+const CD_M2_PER_UNIT = (() => {
+  const l = AtmosphereParameters.DEFAULT.sunRadianceToLuminance;
+  return 0.2126 * l.x + 0.7152 * l.y + 0.0722 * l.z;
+})();
+
 const DISPLAY_GLSL = /* glsl */ `
 uniform float moonSimExposure;
+${MESOPIC_GLSL}
 
 // three.js ACESFilmicToneMapping (fit by Stephen Hill), so the sky matches lit meshes.
 vec3 moonSimRRTAndODTFit(vec3 v) {
@@ -43,7 +54,8 @@ vec3 moonSimDisplay(vec3 radiance) {
     vec3(-0.53108, 1.10813, -0.07276),
     vec3(-0.07367, -0.00605, 1.07602)
   );
-  vec3 color = radiance * moonSimExposure / 0.6;
+  // Low-light colour perception (Purkinje shift) acts on physical luminance, before exposure.
+  vec3 color = moonSimMesopic(radiance) * moonSimExposure / 0.6;
   color = outputMat * moonSimRRTAndODTFit(inputMat * color);
   color = clamp(color, 0.0, 1.0);
   // Linear → sRGB (the canvas expects display-encoded output from raw shaders).
@@ -151,6 +163,7 @@ export class DisplaySkyMaterial extends SkyMaterial {
       groundAlbedo: new Color(GROUND_ALBEDO.x, GROUND_ALBEDO.y, GROUND_ALBEDO.z),
     });
     this.uniforms.moonSimExposure = new Uniform(INITIAL_EXPOSURE);
+    this.uniforms.moonSimCdM2PerUnit = new Uniform(CD_M2_PER_UNIT);
     this.uniforms.moonSimSkyFloor = new Uniform(new Vector2(0, 0));
     this.uniforms.moonSimMoonDirection = new Uniform(new Vector3(0, 0, 1));
     this.uniforms.moonSimMoonScale = new Uniform(0);
@@ -218,6 +231,7 @@ export class DisplayStarsMaterial extends StarsMaterial {
   constructor() {
     super({ background: true, intensity: STAR_INTENSITY });
     this.uniforms.moonSimExposure = new Uniform(INITIAL_EXPOSURE);
+    this.uniforms.moonSimCdM2PerUnit = new Uniform(CD_M2_PER_UNIT);
     this.uniforms.moonSimMoonDirection = new Uniform(new Vector3(0, 0, 1));
     this.uniforms.moonSimMoonScale = new Uniform(0);
     this.uniforms.moonSimSunScale = new Uniform(1);
