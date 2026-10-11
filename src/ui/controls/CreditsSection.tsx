@@ -56,6 +56,10 @@ export function CreditsSection() {
           (OpenStreetMap data, ODbL) via tz-lookup
         </List.Item>
         <List.Item>Built with React, three.js, React Three Fiber, Mantine and Lucide.</List.Item>
+        <List.Item>
+          GitHub icon: {link('https://pictogrammers.com/library/mdi/', 'Material Design Icons')}{' '}
+          (Apache 2.0)
+        </List.Item>
       </List>
       <Text size="xs" c="dimmed">
         moon-sim is MIT-licensed · {link(`${base}third-party-licenses.md`, 'Third-party licences')}

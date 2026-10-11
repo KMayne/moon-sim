@@ -52,6 +52,8 @@ BASE_PATH=/moon-sim/ pnpm run build
   (ODbL).
 - **Time zones:** [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder)
   (OpenStreetMap data, ODbL) via `@photostructure/tz-lookup` (CC0).
+- **GitHub icon:** [Material Design Icons](https://pictogrammers.com/library/mdi/) (Apache 2.0),
+  inlined in `src/App.tsx`.
 
 Asset provenance is in `public/textures/PROVENANCE.md` and `public/atmosphere/PROVENANCE.md`.
 Every production build ships `third-party-licenses.md` with the licence texts of all bundled
