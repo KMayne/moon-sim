@@ -88,7 +88,12 @@ export function MoonDiscPanel({ snap }: { snap: HudSnapshot }) {
   };
 
   const below = snap.moonAltitudeDeg < 0;
-  const phase = `${snap.phase.phaseName} · ${formatPercent(snap.phase.illuminatedFraction)}`;
+  const inProgress = snap.eclipses.inProgress;
+  // During a lunar eclipse the phase ("Full Moon · 100%") isn't what you're looking at.
+  const phase =
+    inProgress?.body === 'moon'
+      ? `${inProgress.stage.charAt(0).toUpperCase()}${inProgress.stage.slice(1)} lunar eclipse`
+      : `${snap.phase.phaseName} · ${formatPercent(snap.phase.illuminatedFraction)}`;
 
   return (
     <section
