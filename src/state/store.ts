@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { SimClock } from '../sim/clock';
+import { SPEED_PRESETS } from '../ui/speeds';
 import { DEFAULT_LOCATION, type ObserverLocation } from './locations';
+import { parseUrlState } from './urlState';
 
 /** Sim seconds per wall second. */
 export const DEFAULT_SPEED = 3600;
@@ -29,10 +31,17 @@ export interface VisualScale {
 
 export const TRUE_SCALE: VisualScale = { moonSize: 1, moonDistance: 1 };
 
+/** Anything a shared link pins down (location, time, speed) overrides the defaults. */
+const fromUrl =
+  typeof window === 'undefined'
+    ? {}
+    : parseUrlState(window.location.search, Object.values(SPEED_PRESETS));
+const initialSpeed = fromUrl.speed ?? DEFAULT_SPEED;
+
 export const useSimStore = create<SimStore>()((set) => {
   const clock = new SimClock({
-    start: new Date(),
-    speed: DEFAULT_SPEED,
+    start: fromUrl.timeMs === undefined ? new Date() : new Date(fromUrl.timeMs),
+    speed: initialSpeed,
     // The clock stops itself at the edge of the supported range; keep the UI in step.
     onClamp: () => {
       set({ speed: 0 });
@@ -40,7 +49,7 @@ export const useSimStore = create<SimStore>()((set) => {
   });
   return {
     clock,
-    speed: DEFAULT_SPEED,
+    speed: initialSpeed,
     setSpeed: (speed) => {
       clock.setSpeed(speed);
       set({ speed });
@@ -48,7 +57,7 @@ export const useSimStore = create<SimStore>()((set) => {
     setTime: (time) => {
       clock.setTime(time);
     },
-    location: DEFAULT_LOCATION,
+    location: fromUrl.location ?? DEFAULT_LOCATION,
     setLocation: (location) => {
       set({ location });
     },

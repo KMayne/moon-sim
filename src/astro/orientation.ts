@@ -1,5 +1,15 @@
-import type { AxisInfo } from 'astronomy-engine';
-import { cross, fromColumns, normalize, vec, type Mat3, type Vec3 } from './vec';
+import { Rotation_EQJ_EQD, SiderealTime, type AxisInfo } from 'astronomy-engine';
+import {
+  cross,
+  fromAstroRotation,
+  fromColumns,
+  mul,
+  normalize,
+  transpose,
+  vec,
+  type Mat3,
+  type Vec3,
+} from './vec';
 
 const DEG = Math.PI / 180;
 const HOUR = 15 * DEG;
@@ -28,4 +38,22 @@ export function bodyOrientation(axis: AxisInfo): Mat3 {
   const east = cross(pole, primeMeridian);
 
   return fromColumns(primeMeridian, east, pole);
+}
+
+/**
+ * Earth-fixed → EQJ: precession and nutation (EQD → EQJ) times rotation by Greenwich apparent
+ * sidereal time. Polar motion (< 1″) is ignored.
+ *
+ * Used instead of the IAU WGCCRE Earth model, which the WGCCRE report itself describes as low
+ * precision: its spin origin drifts from the true Greenwich meridian by ~0.4° by 2026, enough to
+ * misplace the Sun and Moon visibly in the sky view.
+ */
+export function earthOrientation(time: Date): Mat3 {
+  const eqdToEqj = transpose(fromAstroRotation(Rotation_EQJ_EQD(time)));
+  const gast = SiderealTime(time) * HOUR;
+  const c = Math.cos(gast);
+  const s = Math.sin(gast);
+  // Columns in EQD: Greenwich meridian, 90° E, north pole.
+  const spin = fromColumns(vec(c, s, 0), vec(-s, c, 0), vec(0, 0, 1));
+  return mul(eqdToEqj, spin);
 }

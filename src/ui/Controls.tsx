@@ -1,6 +1,12 @@
 import { button, Leva, useControls } from 'leva';
 import { useEffect } from 'react';
-import { DEFAULT_SPEED, useSimStore } from '../state/store';
+import {
+  customLocation,
+  LOCATION_PRESETS,
+  type LocationPresetId,
+  type ObserverLocation,
+} from '../state/locations';
+import { useSimStore } from '../state/store';
 import { SPEED_PRESETS } from './speeds';
 
 /** Parses "YYYY-MM-DD" or "YYYY-MM-DD HH:mm" as UTC. */
@@ -12,6 +18,17 @@ function parseUtc(text: string): Date | null {
   return Number.isNaN(ms) ? null : new Date(ms);
 }
 
+type LocationChoice = LocationPresetId | 'custom';
+
+const LOCATION_OPTIONS: Record<string, LocationChoice> = {
+  ...Object.fromEntries(Object.values(LOCATION_PRESETS).map((p) => [p.label, p.id])),
+  Custom: 'custom',
+};
+
+function toLocation(choice: LocationChoice, latitude: number, longitude: number): ObserverLocation {
+  return choice === 'custom' ? customLocation(latitude, longitude) : LOCATION_PRESETS[choice];
+}
+
 /**
  * The only module that knows about Leva. It mirrors panel values into the zustand store, which
  * stays the single source of truth; swapping the panel library means rewriting this file only.
@@ -19,16 +36,45 @@ function parseUtc(text: string): Date | null {
 export function Controls() {
   const setSpeed = useSimStore((s) => s.setSpeed);
   const setTime = useSimStore((s) => s.setTime);
+  const setLocation = useSimStore((s) => s.setLocation);
   const storeSpeed = useSimStore((s) => s.speed);
 
-  const [time, setPanel] = useControls('Time', () => ({
-    speed: { label: 'speed', value: DEFAULT_SPEED, options: SPEED_PRESETS },
-    reverse: { label: 'reverse', value: false },
-    goTo: { label: 'go to (UTC)', value: '', placeholder: 'YYYY-MM-DD HH:mm' },
-    now: button(() => {
-      setTime(new Date());
-    }),
-  }));
+  const [time, setTimePanel] = useControls('Time', () => {
+    // Initial values come from the store, which may have been seeded from the URL.
+    const speed = useSimStore.getState().speed;
+    return {
+      speed: { label: 'speed', value: Math.abs(speed), options: SPEED_PRESETS },
+      reverse: { label: 'reverse', value: speed < 0 },
+      goTo: { label: 'go to (UTC)', value: '', placeholder: 'YYYY-MM-DD HH:mm' },
+      now: button(() => {
+        setTime(new Date());
+      }),
+    };
+  });
+
+  const [observer] = useControls('Observer', () => {
+    const location = useSimStore.getState().location;
+    const isCustom = (get: (path: string) => unknown) => get('Observer.location') === 'custom';
+    return {
+      location: { label: 'location', value: location.id, options: LOCATION_OPTIONS },
+      latitude: {
+        label: 'latitude °N',
+        value: location.latitude,
+        min: -90,
+        max: 90,
+        step: 0.01,
+        render: isCustom,
+      },
+      longitude: {
+        label: 'longitude °E',
+        value: location.longitude,
+        min: -180,
+        max: 180,
+        step: 0.01,
+        render: isCustom,
+      },
+    };
+  });
 
   useEffect(() => {
     setSpeed(time.speed * (time.reverse ? -1 : 1));
@@ -39,10 +85,14 @@ export function Controls() {
     if (date) setTime(date);
   }, [time.goTo, setTime]);
 
+  useEffect(() => {
+    setLocation(toLocation(observer.location, observer.latitude, observer.longitude));
+  }, [observer.location, observer.latitude, observer.longitude, setLocation]);
+
   // The clock can stop itself at the edge of its range; reflect that in the panel.
   useEffect(() => {
-    if (storeSpeed === 0) setPanel({ speed: 0 });
-  }, [storeSpeed, setPanel]);
+    if (storeSpeed === 0) setTimePanel({ speed: 0 });
+  }, [storeSpeed, setTimePanel]);
 
   return (
     <Leva
