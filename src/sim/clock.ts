@@ -9,6 +9,8 @@ export interface SimClockOptions {
   speed?: number;
   /** Wall clock in ms. Injected for tests; defaults to `performance.now`. */
   wallNow?: () => number;
+  /** Called when the clock stops itself at the edge of the supported range. */
+  onClamp?: () => void;
 }
 
 /**
@@ -21,13 +23,15 @@ export interface SimClockOptions {
  */
 export class SimClock {
   readonly #wallNow: () => number;
+  readonly #onClamp: (() => void) | undefined;
   #anchorWall: number;
   #anchorSim: number;
   #speed: number;
   #frozen = false;
 
-  constructor({ start, speed = 1, wallNow = () => performance.now() }: SimClockOptions) {
+  constructor({ start, speed = 1, wallNow = () => performance.now(), onClamp }: SimClockOptions) {
     this.#wallNow = wallNow;
+    this.#onClamp = onClamp;
     this.#anchorWall = wallNow();
     this.#anchorSim = clamp(start.getTime());
     this.#speed = speed;
@@ -51,6 +55,7 @@ export class SimClock {
       this.#anchorSim = clamped;
       this.#anchorWall = this.#wallNow();
       this.#speed = 0;
+      this.#onClamp?.();
     }
     return clamped;
   }

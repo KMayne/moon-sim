@@ -58,10 +58,16 @@ describe('SimClock', () => {
 
   it('stops at the end of the supported range', () => {
     const wall = fakeWall();
-    const clock = new SimClock({ start: new Date(MAX_SIM_TIME - 1000), wallNow: wall.wallNow });
+    let clamped = 0;
+    const clock = new SimClock({
+      start: new Date(MAX_SIM_TIME - 1000),
+      wallNow: wall.wallNow,
+      onClamp: () => clamped++,
+    });
     clock.setSpeed(1e9);
     wall.advance(1000);
     expect(clock.nowMs()).toBe(MAX_SIM_TIME);
     expect(clock.speed).toBe(0);
+    expect(clamped).toBe(1);
   });
 });
