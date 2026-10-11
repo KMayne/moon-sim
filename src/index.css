@@ -13,6 +13,7 @@ body,
 }
 
 .app {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 300px;
   height: 100%;
@@ -39,17 +40,29 @@ body,
 .simulation-canvas {
   position: absolute !important;
   inset: 0;
+  /* Above the page so the views show; transparent outside them; never takes pointer events. */
+  z-index: 1;
   pointer-events: none;
 }
 
 .sidebar {
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: #0b0d14;
   border-left: 1px solid #1b2030;
 }
 
+/* The disc stays put (a scrolled-away view would draw outside the sidebar); the rest scrolls. */
+.sidebar__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .time-readout {
   position: absolute;
+  z-index: 2;
   top: 12px;
   left: 12px;
   max-width: 320px;

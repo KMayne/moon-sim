@@ -1,5 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { computeSystemState } from '../astro/ephemeris';
+import { toDiscScene } from '../sim/discScene';
 import { toOrbitScene } from '../sim/orbitScene';
 import { toSkyScene } from '../sim/skyScene';
 import { useSimStore } from '../state/store';
@@ -15,10 +16,12 @@ export function FrameDriver() {
     const state = computeSystemState(new Date(simMs));
     // Read settings imperatively: changing them must not re-render the canvas tree.
     const { location, visualScale } = useSimStore.getState();
+    const sky = toSkyScene(state, location, { moonSize: visualScale.moonSize });
     frameRef.current = {
       simMs,
       orbit: toOrbitScene(state, visualScale),
-      sky: toSkyScene(state, location, { moonSize: visualScale.moonSize }),
+      sky,
+      disc: toDiscScene(state, sky),
     };
   }, PRIORITY.driver);
 
